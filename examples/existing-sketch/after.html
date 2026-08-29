@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="sialk-contract" content="1" />
+    <title>After — the same sketch on the contract</title>
+    <!--sialk:fonts-->
+    <link rel="stylesheet" href="../site.css" />
+    <style>
+      /* Only what is specific to a fullscreen sketch. Everything else is site.css. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #08080b;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!--sialk:backlink-->
+    <canvas id="c"></canvas>
+    <div class="sketch-tag">after — 4 lines, and it runs on stage</div>
+    <div class="sketch-start" id="start">Click anywhere to start</div>
+
+    <script type="module">
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d');
+
+      const start = document.getElementById('start');
+
+      function begin() {
+        const { audio, transport, output } = window.sialk;
+        requestAnimationFrame(function frame() {
+          draw(
+            { bands: audio.spectrum, level: audio.level, beat: audio.onBeat },
+            transport.elapsed,
+            output.width,
+            output.height,
+          );
+          requestAnimationFrame(frame);
+        });
+      }
+
+      if (window.sialk) {
+        // Hosted: the contract is already installed and there is no gesture to
+        // wait for. A sketch that insists on a click cannot run on stage.
+        start.remove();
+        begin();
+      } else {
+        start.addEventListener('click', async () => {
+          start.remove();
+          // ─── the whole audio layer ─────────────────────────────────────
+          // Loaded only when running outside a host. A hosted sketch must not
+          // hard-depend on the shim: it is not served from the sketch's own
+          // origin, and a failed static import stops the whole module.
+          const { installShim } = await import('../sialk-shim.js');
+          await installShim({ source: 'microphone' });
+          // ───────────────────────────────────────────────────────────────
+          begin();
+        });
+      }
+
+      // ─── the sketch itself — identical in before.html and after.html ─────
+      function draw({ bands, level, beat }, time, width, height) {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.fillStyle = '#08080b';
+        ctx.fillRect(0, 0, width, height);
+
+        const barWidth = width / bands.length;
+        for (let i = 0; i < bands.length; i++) {
+          const value = bands[i];
+          const barHeight = value * height * 0.8;
+          const hue = 28 + i * 0.9 + Math.sin(time * 0.4) * 14;
+          ctx.fillStyle = `hsl(${hue} 34% ${30 + value * 48}%)`;
+          ctx.fillRect(i * barWidth + 1, height - barHeight, barWidth - 2, barHeight);
+        }
+
+        const radius = (0.04 + level * 0.16 + beat * 0.04) * Math.min(width, height);
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(31, 74, 138, ${0.3 + beat * 0.6})`;
+        ctx.fill();
+      }
+    </script>
+  </body>
+</html>

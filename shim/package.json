@@ -1,0 +1,38 @@
+{
+  "name": "@sialk/shim",
+  "version": "1.0.0",
+  "description": "Run a Sialk sketch in a plain browser. Provides window.sialk from the microphone or an audio file; does nothing inside Sialk itself.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENCE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -b && pnpm run build:bundle",
+    "build:browser": "tsc -b && esbuild src/index.ts --bundle --format=esm --target=es2022 --outfile=dist/sialk-shim.js",
+    "build:bundle": "esbuild src/index.ts --bundle --format=esm --target=es2022 --external:@sialk/audio-contract --outfile=dist/index.js --allow-overwrite"
+  },
+  "dependencies": {
+    "@sialk/audio-contract": "workspace:^"
+  },
+  "devDependencies": {
+    "@sialk/audio-engine": "workspace:*",
+    "esbuild": "^0.25.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sialkapp/sialk-contract.git"
+  },
+  "homepage": "https://sialk.app/contract/"
+}

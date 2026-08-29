@@ -1,0 +1,29 @@
+{
+  "name": "@sialk/audio-contract",
+  "version": "1.0.0",
+  "description": "The Sialk audio contract \u2014 the versioned window.sialk global that sketches are written against.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENCE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sialkapp/sialk-contract.git"
+  },
+  "homepage": "https://sialk.app/contract/"
+}

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Declares the contract major version this sketch was written against.
+         Absent this tag, a host serves the highest v1. -->
+    <meta name="sialk-contract" content="1" />
+    <title>Sialk — minimal WebGL2 sketch</title>
+    <!--sialk:fonts-->
+    <link rel="stylesheet" href="../site.css" />
+    <style>
+      /* Only what is specific to a fullscreen sketch. Everything else is site.css. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!--sialk:backlink-->
+    <canvas id="c"></canvas>
+    <div class="sketch-start" id="start">
+      Click anywhere to start — the browser needs a gesture before it will open the microphone
+    </div>
+
+    <script type="module">
+      // ─── The entire contract integration ─────────────────────────────────
+      // Outside Sialk this opens the microphone and provides window.sialk.
+      // Inside Sialk it does nothing — the host has already installed it.
+      const start = document.getElementById('start');
+      if (window.sialk) {
+        // A host has already installed the contract, so there is no gesture to
+        // wait for and no microphone to ask about — the host provides the audio.
+        // A sketch that waits for a click cannot be hosted: an offscreen browser
+        // has nothing to click it.
+        start.remove();
+        run(window.sialk);
+      } else {
+        start.addEventListener('click', async () => {
+          start.remove();
+          // Loaded only when running outside a host. A hosted sketch must not
+          // hard-depend on the shim: it is not served from the sketch's own
+          // origin, and a failed static import stops the whole module.
+          const { installShim } = await import('../sialk-shim.js');
+          await installShim({ source: 'microphone' });
+          run(window.sialk);
+        });
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
+      function run(sialk) {
+        // Destructure once. The contract guarantees these objects are the same
+        // instances for the sketch's whole life, mutated in place.
+        const { audio, transport, output, parameters } = sialk;
+
+        // ─── What the performer can play ─────────────────────────────────
+        // Declared once, at startup. The host binds these to knobs, keys and
+        // the music; the sketch only ever reads `values`, which is the same
+        // object for its whole life and is mutated in place.
+        parameters.declare({
+          density: {
+            type: 'number',
+            label: 'Ring density',
+            default: 14,
+            min: 2,
+            max: 60,
+            unit: 'rings',
+          },
+          tint: { type: 'colour', label: 'Tint', default: '#8ab4ff' },
+          shape: {
+            type: 'enum',
+            label: 'Shape',
+            default: 'rings',
+            options: ['rings', 'bars', 'grid'],
+          },
+          flash: { type: 'trigger', label: 'Flash' },
+        });
+        const values = parameters.values;
+
+        const canvas = document.getElementById('c');
+        const gl = canvas.getContext('webgl2', { antialias: false });
+
+        const program = link(
+          `#version 300 es
+           const vec2 v[3] = vec2[3](vec2(-1,-1), vec2(3,-1), vec2(-1,3));
+           void main() { gl_Position = vec4(v[gl_VertexID], 0, 1); }`,
+          `#version 300 es
+           precision highp float;
+           uniform float uTime, uLevel, uBass, uHigh, uOnBeat;
+           uniform float uHue, uDensity, uShape, uFlash;
+           uniform vec3 uTint;
+           uniform vec2 uResolution;
+           out vec4 fragColor;
+
+           vec3 palette(float t) {
+             return 0.55 + 0.45 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+           }
+
+           void main() {
+             vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
+             float r = length(uv);
+
+             // Bass pushes the pattern outward; onBeat snaps it. The density
+             // and the shape are the performer's, not the music's.
+             float along = uShape < 0.5 ? r : (uShape < 1.5 ? uv.x : max(abs(uv.x), abs(uv.y)));
+             float rings = sin(along * (uDensity + uBass * 26.0) - uTime * 2.0 + uOnBeat * 3.0);
+             float glow = smoothstep(0.2, 1.0, 1.0 - r) * (0.15 + uLevel * 1.5);
+             // High frequencies sparkle at the edges rather than in the middle.
+             float sparkle = uHigh * smoothstep(0.35, 0.9, r) * (0.5 + 0.5 * sin(r * 90.0 - uTime * 9.0));
+
+             vec3 colour = palette(uHue + r * 0.25) * uTint * (rings * 0.35 + 0.5) * glow + sparkle;
+             fragColor = vec4(colour + uFlash * 0.8, 1.0);
+           }`,
+        );
+        gl.useProgram(program);
+        const u = (name) => gl.getUniformLocation(program, name);
+
+        // `hits` is a monotonic counter, not a flag, so a sketch that misses a
+        // frame still sees the onset. Compare it against last frame's value.
+        let lastHits = audio.hits;
+        let hue = 0;
+
+        // A trigger is a monotonic counter for the same reason `hits` is: a
+        // sketch that drops a frame must not miss the fire.
+        let lastFlash = values.flash;
+        let flash = 0;
+        const shapes = ['rings', 'bars', 'grid'];
+
+        requestAnimationFrame(function frame() {
+          if (audio.hits !== lastHits) {
+            lastHits = audio.hits;
+            hue = (hue + 0.11) % 1;
+          }
+          if (values.flash !== lastFlash) {
+            lastFlash = values.flash;
+            flash = 1;
+          }
+          flash *= 0.86;
+
+          // The contract reports the surface actually being composited. Inside
+          // Sialk that is the projector, not this window.
+          canvas.width = output.width;
+          canvas.height = output.height;
+          gl.viewport(0, 0, canvas.width, canvas.height);
+
+          gl.uniform1f(u('uTime'), transport.elapsed);
+          gl.uniform1f(u('uLevel'), audio.level);
+          gl.uniform1f(u('uBass'), audio.bass);
+          gl.uniform1f(u('uHigh'), audio.high);
+          gl.uniform1f(u('uOnBeat'), audio.onBeat);
+          gl.uniform1f(u('uHue'), hue);
+          gl.uniform1f(u('uDensity'), values.density);
+          // A colour is a Float32Array refilled in place, so it goes straight
+          // to a uniform without allocating anything each frame.
+          gl.uniform3f(u('uTint'), values.tint[0], values.tint[1], values.tint[2]);
+          gl.uniform1f(u('uShape'), shapes.indexOf(values.shape));
+          gl.uniform1f(u('uFlash'), flash);
+          gl.uniform2f(u('uResolution'), canvas.width, canvas.height);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+          requestAnimationFrame(frame);
+        });
+
+        function link(vertexSource, fragmentSource) {
+          const compile = (type, source) => {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+              throw new Error(gl.getShaderInfoLog(shader));
+            }
+            return shader;
+          };
+          const p = gl.createProgram();
+          gl.attachShader(p, compile(gl.VERTEX_SHADER, vertexSource));
+          gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fragmentSource));
+          gl.linkProgram(p);
+          if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+          return p;
+        }
+      }
+    </script>
+  </body>
+</html>

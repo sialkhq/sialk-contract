@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Before — a sketch with its own audio wiring</title>
+    <!--sialk:fonts-->
+    <link rel="stylesheet" href="../site.css" />
+    <style>
+      /* Only what is specific to a fullscreen sketch. Everything else is site.css. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #08080b;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!--sialk:backlink-->
+    <canvas id="c"></canvas>
+    <div class="sketch-tag">before — 31 lines of audio plumbing</div>
+    <div class="sketch-start" id="start">Click anywhere to start</div>
+
+    <script type="module">
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d');
+
+      document.getElementById('start').addEventListener('click', async (event) => {
+        event.currentTarget.remove();
+        const audio = await setUpAudio();
+        requestAnimationFrame(function frame(now) {
+          draw(audio.read(), now / 1000, window.innerWidth, window.innerHeight);
+          requestAnimationFrame(frame);
+        });
+      });
+
+      // ─── 31 lines of audio plumbing ──────────────────────────────────────
+      async function setUpAudio() {
+        const context = new AudioContext();
+        const analyser = context.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.75;
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        });
+        context.createMediaStreamSource(stream).connect(analyser);
+        await context.resume();
+
+        const bins = new Uint8Array(analyser.frequencyBinCount);
+        const bands = new Float32Array(64);
+        const hzPerBin = context.sampleRate / analyser.fftSize;
+        let smoothedLevel = 0;
+
+        return {
+          read() {
+            analyser.getByteFrequencyData(bins);
+
+            // Fold the linear FFT into 64 log-spaced bands by hand.
+            for (let i = 0; i < 64; i++) {
+              const lo = Math.round(
+                Math.exp(Math.log(20) + (Math.log(16000 / 20) * i) / 64) / hzPerBin,
+              );
+              const hi = Math.max(
+                lo + 1,
+                Math.round(
+                  Math.exp(Math.log(20) + (Math.log(16000 / 20) * (i + 1)) / 64) / hzPerBin,
+                ),
+              );
+              let sum = 0;
+              for (let b = lo; b < Math.min(hi, bins.length); b++) sum += bins[b] / 255;
+              bands[i] = sum / (hi - lo);
+            }
+
+            let total = 0;
+            for (let i = 0; i < bins.length; i++) total += bins[i] / 255;
+            const level = total / bins.length;
+            // Ad-hoc asymmetric smoothing, tuned by eye, undocumented.
+            smoothedLevel += (level - smoothedLevel) * (level > smoothedLevel ? 0.5 : 0.08);
+
+            return { bands, level: smoothedLevel, beat: 0 };
+          },
+        };
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
+      // ─── the sketch itself — identical in before.html and after.html ─────
+      function draw({ bands, level, beat }, time, width, height) {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.fillStyle = '#08080b';
+        ctx.fillRect(0, 0, width, height);
+
+        const barWidth = width / bands.length;
+        for (let i = 0; i < bands.length; i++) {
+          const value = bands[i];
+          const barHeight = value * height * 0.8;
+          const hue = 28 + i * 0.9 + Math.sin(time * 0.4) * 14;
+          ctx.fillStyle = `hsl(${hue} 34% ${30 + value * 48}%)`;
+          ctx.fillRect(i * barWidth + 1, height - barHeight, barWidth - 2, barHeight);
+        }
+
+        const radius = (0.04 + level * 0.16 + beat * 0.04) * Math.min(width, height);
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(31, 74, 138, ${0.3 + beat * 0.6})`;
+        ctx.fill();
+      }
+    </script>
+  </body>
+</html>

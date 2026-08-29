@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="sialk-contract" content="1" />
+    <meta name="theme-color" content="#9cbcea" />
+    <title>Contract inspector — Sialk</title>
+    <meta
+      name="description"
+      content="Every field of the Sialk audio contract, live from your microphone."
+    />
+    <!--sialk:fonts-->
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <!--sialk:masthead-->
+
+    <main class="wrap inspector" id="inspector">
+      <div class="head">
+        <span class="dot" aria-hidden="true"></span>
+        <h1>Contract inspector</h1>
+        <span class="who" id="who">contract not installed yet</span>
+        <span class="actions">
+          <select id="source" aria-label="Audio source">
+            <option value="microphone">Microphone</option>
+            <option value="silent">Silence</option>
+          </select>
+          <button class="control" id="toggle" type="button">start</button>
+        </span>
+      </div>
+
+      <p class="notice" id="notice">
+        Press start. Browsers will not open an audio device without a click, and nothing you play is
+        recorded or sent anywhere.
+      </p>
+
+      <section class="panel">
+        <h2>audio — levels</h2>
+        <div class="meters" id="meters"></div>
+      </section>
+
+      <section class="panel">
+        <h2>audio — spectrum (64 log-spaced bins)</h2>
+        <canvas id="spectrum" width="1024" height="220"></canvas>
+      </section>
+
+      <section class="panel">
+        <h2>audio — levelTrail (128 frames, newest at the right)</h2>
+        <canvas id="trail" width="1024" height="220"></canvas>
+      </section>
+
+      <section class="panel">
+        <h2>audio — detection</h2>
+        <div class="fields" id="detection"></div>
+      </section>
+
+      <section class="panel">
+        <h2>transport &amp; output</h2>
+        <div class="fields" id="transport"></div>
+      </section>
+
+      <section class="panel">
+        <h2>events</h2>
+        <div id="log"><div class="empty">Nothing yet.</div></div>
+      </section>
+
+      <!--sialk:footer-->
+    </main>
+
+    <script type="module">
+      import { installShim } from '../sialk-shim.js';
+
+      const METERS = ['level', 'bass', 'mid', 'high', 'onBeat'];
+      const DETECTION = ['hits', 'bpm', 'bpmConfidence', 'silent'];
+      const TRANSPORT = ['time', 'elapsed', 'delta', 'frame', 'running', 'width', 'height', 'fps'];
+
+      const inspector = document.getElementById('inspector');
+      const toggle = document.getElementById('toggle');
+      const sourceSelect = document.getElementById('source');
+      const who = document.getElementById('who');
+      const notice = document.getElementById('notice');
+      const logEl = document.getElementById('log');
+
+      const meterEls = build(
+        'meters',
+        METERS,
+        (name) => `
+        <div class="meter">
+          <span class="name">${name}</span>
+          <span class="track"><span class="fill" data-fill="${name}"></span></span>
+          <span class="value" data-value="${name}">0.000</span>
+        </div>`,
+      );
+      const detectionEls = build('detection', DETECTION, field);
+      const transportEls = build('transport', TRANSPORT, field);
+
+      function field(name) {
+        return `<div class="field"><div class="name">${name}</div>
+                <div class="value" data-value="${name}">—</div></div>`;
+      }
+
+      function build(containerId, names, markup) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = names.map(markup).join('');
+        return Object.fromEntries(
+          names.map((name) => [
+            name,
+            {
+              value: container.querySelector(`[data-value="${name}"]`),
+              fill: container.querySelector(`[data-fill="${name}"]`),
+            },
+          ]),
+        );
+      }
+
+      const spectrum = canvas('spectrum');
+      const trail = canvas('trail');
+      function canvas(id) {
+        const element = document.getElementById(id);
+        return { element, ctx: element.getContext('2d') };
+      }
+
+      const styles = getComputedStyle(document.documentElement);
+      const LIVE = styles.getPropertyValue('--live').trim() || '#1f4a8a';
+      const SOIL = styles.getPropertyValue('--soil').trim() || '#a8815a';
+
+      // ── start / stop ───────────────────────────────────────────────────
+      let handle = null;
+      let frameRequest = null;
+      let unsubscribe = [];
+
+      toggle.addEventListener('click', () => (handle ? stop() : start()));
+
+      async function start() {
+        toggle.disabled = true;
+        toggle.textContent = 'starting…';
+        sourceSelect.disabled = true;
+
+        try {
+          handle = await installShim({ source: sourceSelect.value });
+        } catch (error) {
+          handle = null;
+          toggle.disabled = false;
+          toggle.textContent = 'start';
+          sourceSelect.disabled = false;
+          notice.textContent =
+            error?.name === 'NotAllowedError'
+              ? 'The browser blocked the microphone. Allow it in the address bar, then press start again.'
+              : `Could not open an audio input: ${error.message}`;
+          return;
+        }
+
+        const sialk = handle.sialk;
+        toggle.disabled = false;
+        toggle.textContent = 'stop';
+        toggle.classList.add('stop');
+        inspector.classList.add('live');
+        who.textContent = `contract v${sialk.contractVersion} · host ${sialk.host.name}/${sialk.host.version}`;
+        notice.textContent =
+          sourceSelect.value === 'silent'
+            ? 'Reading silence, which is a real reading: every field stays a number, and none of them is NaN.'
+            : 'Reading your microphone. Nothing is recorded or sent anywhere.';
+
+        unsubscribe = [
+          sialk.on('beat', (d) =>
+            log('beat', `bpm ${d.bpm.toFixed(1)} · confidence ${d.confidence.toFixed(2)}`),
+          ),
+          sialk.on('onset', (d) =>
+            log('onset', `hits ${d.hits} · strength ${d.strength.toFixed(2)}`),
+          ),
+          sialk.on('resize', (d) => log('resize', `${d.width}×${d.height}`)),
+          sialk.on('transport', (d) => log('transport', `running ${d.running}`)),
+        ];
+
+        frameRequest = requestAnimationFrame(function render() {
+          draw(sialk);
+          frameRequest = requestAnimationFrame(render);
+        });
+      }
+
+      function stop() {
+        cancelAnimationFrame(frameRequest);
+        frameRequest = null;
+        for (const off of unsubscribe) off();
+        unsubscribe = [];
+        handle.stop();
+        // Draw once more so the panels show the zeroed contract rather than
+        // the last live frame, which would read as current.
+        draw(handle.sialk);
+        handle = null;
+
+        inspector.classList.remove('live');
+        toggle.textContent = 'start';
+        toggle.classList.remove('stop');
+        sourceSelect.disabled = false;
+        notice.textContent = 'Stopped. The audio device is released; press start to open it again.';
+      }
+
+      // ── drawing ────────────────────────────────────────────────────────
+      function draw(sialk) {
+        const { audio, transport, output } = sialk;
+
+        for (const name of METERS) {
+          meterEls[name].fill.style.width = `${(audio[name] * 100).toFixed(1)}%`;
+          meterEls[name].value.textContent = audio[name].toFixed(3);
+        }
+
+        detectionEls.hits.value.textContent = audio.hits;
+        detectionEls.bpm.value.textContent = audio.bpm === 0 ? 'unknown' : audio.bpm.toFixed(1);
+        detectionEls.bpm.value.classList.toggle('warn', audio.bpm === 0);
+        detectionEls.bpmConfidence.value.textContent = audio.bpmConfidence.toFixed(2);
+        // Below ~0.4 the contract says treat bpm as decorative. Say so here too.
+        detectionEls.bpmConfidence.value.classList.toggle('warn', audio.bpmConfidence < 0.4);
+        detectionEls.silent.value.textContent = audio.silent;
+        detectionEls.silent.value.classList.toggle('warn', audio.silent);
+
+        transportEls.time.value.textContent = transport.time.toFixed(2);
+        transportEls.elapsed.value.textContent = transport.elapsed.toFixed(2);
+        transportEls.delta.value.textContent = `${(transport.delta * 1000).toFixed(1)} ms`;
+        transportEls.frame.value.textContent = transport.frame;
+        transportEls.running.value.textContent = transport.running;
+        transportEls.width.value.textContent = output.width;
+        transportEls.height.value.textContent = output.height;
+        transportEls.fps.value.textContent = output.fps;
+
+        drawSpectrum(audio.spectrum);
+        drawTrail(audio.levelTrail);
+      }
+
+      function drawSpectrum(bins) {
+        const { element, ctx } = spectrum;
+        ctx.clearRect(0, 0, element.width, element.height);
+        const barWidth = element.width / bins.length;
+        ctx.fillStyle = LIVE;
+        for (let i = 0; i < bins.length; i++) {
+          const height = bins[i] * element.height;
+          ctx.fillRect(i * barWidth + 1, element.height - height, barWidth - 2, height);
+        }
+      }
+
+      function drawTrail(values) {
+        const { element, ctx } = trail;
+        ctx.clearRect(0, 0, element.width, element.height);
+        ctx.strokeStyle = LIVE;
+        ctx.fillStyle = SOIL;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // [0] is newest, so draw it from the right-hand edge backwards.
+        for (let i = 0; i < values.length; i++) {
+          const x = element.width - (i / (values.length - 1)) * element.width;
+          const y = element.height - values[i] * element.height;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      function log(kind, detail) {
+        logEl.querySelector('.empty')?.remove();
+        const line = document.createElement('div');
+        line.innerHTML = `<b>${kind}</b> ${detail}`;
+        logEl.prepend(line);
+        while (logEl.childElementCount > 60) logEl.lastElementChild.remove();
+      }
+    </script>
+  </body>
+</html>

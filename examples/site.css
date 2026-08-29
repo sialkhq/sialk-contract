@@ -1,0 +1,1918 @@
+/* Sialk — sialk.app
+ *
+ * The site looks like the application, because it is selling the application.
+ * Same near-black ground, same one amber that means "this is live", same
+ * JetBrains Mono for everything, exactly as the application is. A visitor who
+ * downloads the beta should recognise the thing that opens.
+ *
+ * The palette was the ziggurat's sky over sun-baked brick, read in daylight.
+ * Inverted for a dark room: the brick stays, the sky becomes the one accent,
+ * and the ground goes to the colour of the operator surface.
+ */
+
+:root {
+  --ground: #131110;
+  --panel: #1a1715;
+  --lift: #211d1a;
+  --line: #2b2521;
+  --line-bright: #3a322c;
+
+  --text: #ded7cc;
+  --dim: #978d83;
+  --faint: #6b625a;
+
+  /* The live colour. One thing means one thing. */
+  --amber: #d9a437;
+  --amber-dim: #8a6926;
+  --amber-ghost: #3d2f11;
+  /* Kept from the daylight palette: the sky is now a highlight, not a ground. */
+  --sky: #9cbcea;
+
+  --good: #7fa465;
+  --bad: #c4634a;
+
+  /* One family. The application is monospace throughout and so is this —
+     a visitor who downloads the beta should recognise the thing that opens.
+     Monospace prose needs looking after: smaller than a serif would be, a
+     generous line-height, and a measure that accounts for the wider glyph. */
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* An absolute measure, not `58ch`.
+     `ch` is resolved against the element's own font, so the same token gave a
+     paragraph 505px and a 46px headline 1,600px — the heading ran the width of
+     the page while the prose under it sat in a narrow ribbon. Three different
+     text widths on one page was the whole complaint. */
+  /* One width for everything in a document — prose, code and tables alike.
+   *
+   * It was 34rem, then 42rem, and reported as narrow both times. The width was
+   * never really the fault: **figures were allowed to bleed wider than the
+   * prose**, so a table filled the window while the paragraph above it stopped
+   * two thirds of the way across, and the paragraph looked thin *by
+   * comparison*. Widening the prose alone could not fix that, because the
+   * figure widened with it.
+   *
+   * So the bleed is gone. 46rem at 16px is about 76 characters — wide for
+   * prose, right for a monospace technical page, and the same width as the
+   * table under it, which is the part that was actually wrong. */
+  --measure: 46rem;
+  /* One width and one gutter for every container on the site — the masthead,
+     the page, the hero's words and the footer. They were 74rem, 84rem and
+     76rem with three different paddings, so the nav, the headline and the
+     body text each started at a different place on the same page. */
+  --wrap: 76rem;
+  --gutter: 1.75rem;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  /* `clip`, not `hidden`: it stops a stray element taking the page sideways
+     without making the body a scroll container, which would break the sticky
+     masthead. The overflows themselves are fixed where they occur; this is
+     the guard that keeps one reappearing from ruining every page. */
+  overflow-x: clip;
+  color: var(--text);
+  /* Monospace runs small for its nominal size, and this is body text on a
+     documentation site rather than a caption. */
+  font: 400 16px/1.75 var(--mono);
+  -webkit-font-smoothing: antialiased;
+  background: var(--ground);
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--line-bright);
+  color: var(--ground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+a {
+  color: var(--text);
+  text-decoration-color: var(--line-bright);
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  color: var(--amber);
+}
+
+/* ── masthead ─────────────────────────────────────────────────────────── */
+
+.masthead {
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.masthead .inner {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0.8rem var(--gutter);
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  font: 500 0.78rem/1 var(--mono);
+  letter-spacing: 0.02em;
+}
+
+.masthead a {
+  text-decoration: none;
+}
+.masthead .mark {
+  color: var(--amber);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.masthead .mark:hover {
+  color: var(--text);
+}
+.masthead .sep {
+  color: var(--faint);
+}
+.masthead .where {
+  color: var(--dim);
+}
+.masthead nav {
+  margin-left: auto;
+  display: flex;
+  gap: 1.1rem;
+  align-items: baseline;
+}
+.masthead nav a {
+  color: var(--dim);
+}
+.masthead nav a:hover,
+.masthead nav a[aria-current='page'] {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--line-bright);
+  text-underline-offset: 0.3em;
+}
+.masthead .version {
+  color: var(--dim);
+}
+.masthead .version b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* A fullscreen sketch gets a way back, and nothing else. */
+.backlink {
+  position: fixed;
+  top: 0.9rem;
+  left: 1rem;
+  z-index: 20;
+  font: 500 0.76rem/1 var(--mono);
+  color: var(--line);
+  background: color-mix(in srgb, var(--text) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 28%, transparent);
+  border-radius: 6px;
+  padding: 0.45rem 0.7rem;
+  text-decoration: none;
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+.backlink:hover,
+.backlink:focus-visible {
+  opacity: 1;
+  color: var(--ground);
+}
+
+/* ── page shell ───────────────────────────────────────────────────────── */
+
+.wrap {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.lede {
+  padding: 5rem 0 3.25rem;
+  max-width: var(--measure);
+}
+
+h1 {
+  font: 800 clamp(2.35rem, 6.6vw, 4.4rem) / 0.98 var(--mono);
+  letter-spacing: -0.045em;
+  margin: 0 0 1.5rem;
+  text-wrap: balance;
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--amber);
+}
+
+.lede p {
+  margin: 0 0 1.1rem;
+  font-size: 1.16rem;
+}
+
+.lede p.small,
+section.part p.small {
+  font-size: 0.98rem;
+  color: var(--dim);
+}
+
+/* ── the live contract — the one bold element ─────────────────────────── */
+
+.contract {
+  background: var(--line);
+  border: 1px solid var(--line-bright);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 0 1rem;
+  box-shadow: 0 14px 34px -22px var(--amber);
+}
+
+.contract-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 1.1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line-bright) 55%, var(--line));
+  background: var(--ground);
+  font: 500 0.74rem/1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-bright);
+  flex: none;
+}
+.contract.live .dot,
+.inspector.live .dot {
+  background: var(--amber);
+}
+
+.contract-bar .state {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+pre.literal {
+  margin: 0;
+  padding: 1.4rem 1.1rem 1.6rem;
+  overflow-x: auto;
+  font: 400 clamp(0.78rem, 1.55vw, 0.92rem) / 1.85 var(--mono);
+  color: var(--dim);
+  tab-size: 2;
+}
+
+pre.literal .k {
+  color: var(--text);
+}
+pre.literal .s {
+  color: var(--amber);
+}
+pre.literal .c {
+  color: color-mix(in srgb, var(--dim) 62%, var(--line));
+}
+
+pre.literal .n {
+  color: var(--dim);
+  transition: color 0.5s ease;
+}
+.contract.live pre.literal .n {
+  color: var(--amber);
+  font-weight: 500;
+}
+
+pre.literal .bar {
+  color: color-mix(in srgb, var(--line-bright) 45%, var(--line));
+  letter-spacing: -0.08em;
+  transition: color 0.5s ease;
+}
+.contract.live pre.literal .bar {
+  color: color-mix(in srgb, var(--amber) 70%, var(--line));
+}
+
+/* Values wake line by line when the microphone opens — once, then never again. */
+.contract.waking pre.literal .row {
+  animation: wake 0.5s ease both;
+  animation-delay: calc(var(--i) * 55ms);
+}
+@keyframes wake {
+  from {
+    opacity: 0.2;
+  }
+}
+
+.contract-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.9rem;
+  align-items: center;
+  padding: 0 1.1rem 1.2rem;
+}
+
+button.mic,
+button.control {
+  font: 500 0.86rem/1 var(--mono);
+  color: var(--ground);
+  background: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 7px;
+  padding: 0.62rem 1rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s,
+    color 0.15s;
+}
+button.mic:hover,
+button.control:hover {
+  background: var(--text);
+  border-color: var(--text);
+  transform: translateY(-1px);
+}
+button.mic[disabled],
+button.control[disabled] {
+  background: transparent;
+  color: var(--dim);
+  border-color: var(--line-bright);
+  cursor: progress;
+  transform: none;
+}
+button.mic.stop,
+button.control.stop {
+  background: transparent;
+  color: var(--amber);
+  border-color: var(--amber);
+}
+button.mic.stop:hover,
+button.control.stop:hover {
+  background: var(--amber);
+  color: var(--ground);
+}
+
+.contract-note {
+  font: 400 0.82rem/1.5 var(--mono);
+  color: var(--dim);
+  margin: 0;
+}
+
+.caption {
+  font: 400 0.84rem/1.6 var(--mono);
+  color: var(--dim);
+  margin: 0 0 4.5rem;
+  max-width: var(--measure);
+}
+
+/* ── sections, numbered because the spec is ───────────────────────────── */
+
+/* A section is prose beside its visual, alternating sides.
+ *
+ * Two children, two columns, and the only thing that changes on an even
+ * section is which column each child sits in. The earlier version mixed
+ * `order` with `grid-column` on three different children and they fought:
+ * numbers ended up orphaned in an empty column and the alternation started on
+ * the wrong foot. One mechanism, stated once.
+ */
+section.part {
+  display: grid;
+  grid-template-columns: minmax(0, 31rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 4rem;
+  padding: 6rem 0;
+  border-top: 1px solid var(--line);
+}
+
+/* Both children are pinned to row 1, and that is not decoration.
+ *
+ * Grid auto-placement is *sparse*: the cursor only ever moves forward. On a
+ * reversed section the body asks for column 2 and is placed there, the cursor
+ * passes it, and the demo — which asks for column 1 — cannot go backwards, so
+ * it lands on row **2**. Every other section therefore had its heading alone
+ * at the top right and its picture on its own below left, with a void in each
+ * of the other two corners. Naming the row is what makes the reversal a
+ * reversal rather than a second row. */
+section.part > .body {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+section.part > .demo {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Turning the section around has to turn the *columns* around too. Swapping
+   only the placement left the visual in the 27rem column on every other
+   section, which is why half the demos were smaller than the other half. The
+   picture always gets the wide side. */
+section.part:nth-of-type(even) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 31rem);
+}
+
+section.part:nth-of-type(even) > .body {
+  grid-column: 2;
+}
+
+section.part:nth-of-type(even) > .demo {
+  grid-column: 1;
+}
+
+/* Nothing to show beside the words: one column, full width. */
+section.part.full,
+section.part.full:nth-of-type(even) {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+section.part.full > .body,
+section.part.full:nth-of-type(even) > .body {
+  grid-column: 1;
+}
+
+section.part.full > .body > p {
+  max-width: var(--measure);
+}
+
+section.part .num {
+  display: block;
+  font: 500 0.72rem/1 var(--mono);
+  color: var(--amber);
+  letter-spacing: 0.22em;
+  margin-bottom: 1.1rem;
+}
+
+section.part h2 {
+  font: 700 clamp(1.45rem, 2.2vw, 2rem) / 1.25 var(--mono);
+  letter-spacing: -0.04em;
+  margin: 0 0 1.2rem;
+  color: var(--text);
+}
+
+section.part p {
+  margin: 0 0 1.05rem;
+}
+
+section.part p:last-child {
+  margin-bottom: 0;
+}
+
+.links {
+  list-style: none;
+  margin: 1.4rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.links a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--line);
+  border: 1px solid color-mix(in srgb, var(--line-bright) 60%, var(--line));
+  border-radius: 9px;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.15s;
+}
+.links a:hover {
+  border-color: var(--amber);
+  background: var(--ground);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+.links strong {
+  font: 500 0.95rem/1.4 var(--mono);
+  letter-spacing: -0.01em;
+}
+.links span {
+  grid-column: 1;
+  color: var(--dim);
+  font-size: 0.95rem;
+}
+.links .arrow {
+  grid-row: 1;
+  grid-column: 2;
+  color: var(--amber);
+  font-family: var(--mono);
+}
+
+pre.snippet {
+  background: var(--line);
+  border: 1px solid color-mix(in srgb, var(--line-bright) 60%, var(--line));
+  border-radius: 9px;
+  padding: 1.1rem;
+  overflow-x: auto;
+  font: 400 0.85rem/1.75 var(--mono);
+  color: var(--text);
+  margin: 1.3rem 0 0;
+}
+pre.snippet .c {
+  color: var(--dim);
+}
+pre.snippet .s {
+  color: var(--amber);
+}
+
+/* ── the inspector ────────────────────────────────────────────────────── */
+
+.inspector {
+  padding-top: 2.5rem;
+}
+
+.inspector .head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem 1rem;
+  margin-bottom: 1.5rem;
+}
+.inspector .head h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  margin: 0;
+}
+.inspector .head .who {
+  font: 400 0.8rem/1.4 var(--mono);
+  color: var(--dim);
+}
+.inspector .head .actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inspector select {
+  font: 400 0.85rem/1 var(--mono);
+  color: var(--text);
+  background: var(--line);
+  border: 1px solid var(--amber);
+  border-radius: 7px;
+  padding: 0.6rem 0.7rem;
+  cursor: pointer;
+}
+.inspector select:disabled {
+  color: var(--dim);
+  cursor: default;
+}
+
+.inspector .notice {
+  font: 400 0.9rem/1.6 var(--mono);
+  color: var(--amber);
+  margin: 0 0 1.5rem;
+  max-width: var(--measure);
+}
+
+.panel {
+  background: var(--line);
+  border: 1px solid color-mix(in srgb, var(--line-bright) 60%, var(--line));
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.panel > h2 {
+  font: 500 0.72rem/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--dim);
+  margin: 0 0 1rem;
+}
+
+.meters {
+  display: grid;
+  gap: 0.55rem;
+}
+.meter {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 4.5rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+.meter .name {
+  color: var(--dim);
+  font: 400 0.85rem/1.4 var(--mono);
+}
+.meter .track {
+  height: 8px;
+  background: color-mix(in srgb, var(--line-bright) 32%, var(--line));
+  border-radius: 4px;
+  overflow: hidden;
+}
+.meter .fill {
+  height: 100%;
+  width: 0%;
+  background: var(--amber);
+  border-radius: 4px;
+}
+.meter .value {
+  text-align: right;
+  font: 400 0.82rem/1.4 var(--mono);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.9rem 1.25rem;
+}
+.field .name {
+  color: var(--dim);
+  font: 400 0.72rem/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.field .value {
+  font: 500 1rem/1.4 var(--mono);
+  margin-top: 0.15rem;
+}
+.field .value.warn {
+  color: var(--amber);
+}
+
+.inspector canvas {
+  display: block;
+  width: 100%;
+  height: 110px;
+  background: color-mix(in srgb, var(--line) 80%, white);
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--line-bright) 45%, var(--line));
+}
+
+#log {
+  font: 400 0.8rem/1.7 var(--mono);
+  color: var(--dim);
+  max-height: 9rem;
+  overflow-y: auto;
+  margin: 0;
+}
+#log b {
+  color: var(--amber);
+  font-weight: 600;
+}
+#log .empty {
+  font-style: italic;
+}
+
+/* ── fullscreen sketch chrome ─────────────────────────────────────────── */
+
+.sketch-start {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 15;
+  background: color-mix(in srgb, var(--text) 88%, transparent);
+  color: var(--ground);
+  cursor: pointer;
+  font: 400 0.95rem/1.6 var(--mono);
+  text-align: center;
+  padding: 2rem;
+}
+.sketch-tag {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 14;
+  font: 400 0.72rem/1 var(--mono);
+  color: color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+/* ── rendered specification ───────────────────────────────────────────── */
+
+/* A document page is one centred column, not a ribbon pinned to the left of a
+   1216px page — which is what it was, and read as a draft someone abandoned.
+   The column is set on the page element itself rather than on each block:
+   `margin-inline: auto` on the children is undone by every `margin` shorthand
+   that follows it, so the headings centred and the lists did not. */
+/*
+ * A document page is the same width as every other page, and starts where they
+ * start.
+ *
+ * It used to be a narrower column centred inside the page, which put its text
+ * inland while the masthead, the footer and the whole home page began at the
+ * left edge of the wrap. Two different left edges on one site, and the
+ * document pages were the odd ones. **The prose still has a measure — it is
+ * simply left-aligned to the page rather than floated in the middle of it**,
+ * which is what the home page's full-width sections already do.
+ */
+.doc {
+  padding: 3.25rem var(--gutter) 0;
+}
+
+.doc-body > * {
+  max-width: var(--measure);
+}
+
+/* ── on this page ─────────────────────────────────────────────────────── */
+
+/*
+ * The section list, beside the prose — and **only where there is room for it**.
+ *
+ * The first version made `.doc` a two-column grid at every width. At 768 the
+ * prose column alone is 736px, so the second column had nowhere to go and
+ * pushed every document page sideways by a few pixels at six of the ten widths
+ * — invisible to the eye and instantly obvious to the overflow check.
+ *
+ * 68rem is the width at which both fit with the gutters. Below it the page is
+ * one column and the list is not drawn: on a phone a document is scrolled, and
+ * a table of contents stacked above the title it belongs to is worse than
+ * none.
+ */
+.doc > .toc {
+  display: none;
+}
+
+@media (min-width: 68rem) {
+  .doc {
+    display: grid;
+    grid-template-columns: minmax(0, var(--measure)) minmax(0, 1fr);
+    column-gap: 4rem;
+    align-items: start;
+  }
+
+  .doc > .toc {
+    display: block;
+    /* One row, two items: the aside has the document's full height to be
+       sticky against, and nothing has to span anything. */
+    position: sticky;
+    top: 4.5rem;
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+}
+
+.toc-head {
+  margin: 0 0 0.7rem;
+  color: var(--faint);
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  /* A rule down the side, so the list reads as a margin note rather than as a
+     second column of content competing with the first. */
+  border-left: 1px solid var(--line);
+  padding-left: 1rem;
+}
+
+.toc a {
+  color: var(--dim);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  color: var(--amber);
+}
+
+/* A section that is scrolled past is still where you are, so `:target` is not
+   enough on its own — but it costs nothing and helps when you arrive by link. */
+.doc h2:target {
+  scroll-margin-top: 5rem;
+}
+
+.doc h1 {
+  font-size: clamp(1.8rem, 4.5vw, 2.4rem);
+  margin-bottom: 1.75rem;
+}
+.doc h2 {
+  font: 700 1.3rem/1.35 var(--mono);
+  letter-spacing: -0.035em;
+  margin: 3.25rem 0 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid color-mix(in srgb, var(--line-bright) 60%, transparent);
+}
+.doc h3 {
+  font: 500 1.03rem/1.45 var(--mono);
+  letter-spacing: -0.02em;
+  margin: 2rem 0 0.75rem;
+  color: var(--amber);
+}
+.doc p,
+.doc li {
+  margin: 0 0 1.05rem;
+}
+
+/* A URL is one long word and cannot be hyphenated, so on a narrow phone it
+   pushes the page sideways on its own — `https://vercel.com/legal/privacy-notice`
+   in the privacy policy did exactly that at 320px once the body size went up.
+   `anywhere` rather than `break-word` because it also lets the *line box*
+   shrink, which is what stops the overflow rather than merely wrapping it. */
+.doc a {
+  overflow-wrap: anywhere;
+}
+.doc ul,
+.doc ol {
+  padding-left: 1.35rem;
+}
+.doc li::marker {
+  color: var(--amber);
+}
+.doc strong {
+  font-weight: 600;
+}
+.doc code {
+  font: 400 0.87em/1.6 var(--mono);
+  color: var(--amber);
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.doc pre {
+  background: var(--line);
+  border: 1px solid color-mix(in srgb, var(--line-bright) 60%, var(--line));
+  border-radius: 9px;
+  padding: 1.1rem;
+  overflow-x: auto;
+  margin: 0 0 1.4rem;
+}
+.doc pre code {
+  background: none;
+  padding: 0;
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+.doc blockquote {
+  margin: 0 0 1.4rem;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--line-bright);
+  color: var(--dim);
+  font-style: italic;
+}
+.doc .table-scroll {
+  overflow-x: auto;
+  margin: 0 0 1.5rem;
+}
+.doc table {
+  border-collapse: collapse;
+  width: 100%;
+  font: 400 0.88rem/1.55 var(--mono);
+}
+.doc th,
+.doc td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.9rem 0.6rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line-bright) 50%, transparent);
+}
+.doc th {
+  color: var(--dim);
+  font-weight: 500;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.doc hr {
+  border: 0;
+  border-top: 1px solid var(--line-bright);
+  margin: 2.5rem 0;
+}
+
+/* Figures are the width of the column, like everything else in it. A table
+   wider than the paragraph above it is what made the paragraph look narrow. */
+
+/* ── footer ───────────────────────────────────────────────────────────── */
+
+footer.foot {
+  border-top: 1px solid var(--line-bright);
+  margin-top: 4rem;
+  padding: 1.75rem 0 0;
+  font: 400 0.82rem/1.7 var(--mono);
+  color: var(--dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+}
+
+@media (max-width: 46rem) {
+  .masthead .version {
+    display: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .lede {
+    padding-top: 3rem;
+  }
+  section.part {
+    /* `1fr` is `minmax(auto, 1fr)`, and `auto` takes the width of the widest
+       child — so a code block forced this column to 608px inside a 390px
+       page, and the whole document sideways with it. The desktop rule already
+       says `minmax(0, 1fr)` for exactly this reason; overriding it here undid
+       that. Measured at 390×844. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+  section.part > .num {
+    line-height: 1.4;
+  }
+  .meter {
+    grid-template-columns: 6rem minmax(0, 1fr) 3.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── the beta ──────────────────────────────────────────────────────────── */
+
+/* Sialk itself now leads the page, and the contract sits underneath it. A
+   stranger arriving from a forum post is looking for the application; a
+   developer scrolls one screen and finds the specification unchanged. */
+.beta-lede {
+  padding: 4rem 0 2.5rem;
+  border-bottom: 1px solid var(--line-bright);
+}
+
+.beta-lede h1 {
+  font: 400 clamp(2.6rem, 7vw, 4.4rem) / 1.04 var(--mono);
+  margin: 0.4em 0 0.5em;
+  letter-spacing: -0.015em;
+}
+
+.beta-lede h1 em {
+  font-style: italic;
+  color: var(--amber);
+}
+
+.beta-lede > p {
+  max-width: var(--measure);
+}
+
+.tag {
+  font: 400 0.78rem/1.4 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0;
+}
+
+.lede .tag {
+  margin-bottom: 1.4rem;
+}
+
+/* One button on the whole site. It is the only thing here anyone must click. */
+.download {
+  display: inline-block;
+  background: var(--amber);
+  color: var(--ground);
+  text-decoration: none;
+  padding: 0.7em 1.5em;
+  font: 400 1rem/1 var(--mono);
+  border-radius: 2px;
+}
+
+.download:hover {
+  background: var(--text);
+  color: var(--ground);
+}
+
+.beta-lede .contract-actions,
+.doc .contract-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+/* ── narrow screens ────────────────────────────────────────────────────── */
+
+/* The masthead was the one thing overflowing every page on a phone: the mark,
+   the page label and a four-item nav do not fit across 390px, and a sticky bar
+   that forces the whole document sideways takes every page with it. Measured
+   in a browser at 390×844, which is where it was found — it is invisible at
+   desktop widths and the CSS looks perfectly reasonable. */
+@media (max-width: 40rem) {
+  .masthead .inner {
+    flex-wrap: wrap;
+    row-gap: 0.6rem;
+    padding: 0.7rem 1rem;
+  }
+
+  /* The page label repeats what the heading below already says. */
+  .masthead .where,
+  .masthead .sep,
+  .masthead .version {
+    display: none;
+  }
+
+  .masthead nav {
+    margin-left: 0;
+    width: 100%;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  /* Nothing in the page may be wider than the page. The code listings scroll
+     inside themselves instead. */
+  .contract,
+  pre.literal,
+  pre.snippet,
+  .doc pre {
+    max-width: 100%;
+  }
+
+  .beta-lede {
+    padding-top: 2.5rem;
+  }
+
+}
+
+/* ── the hero ──────────────────────────────────────────────────────────── */
+
+/* Full-bleed: the hero lives inside `.wrap`, which is centred and padded, so it
+   has to break out of it to reach both edges. The body never scrolls sideways
+   because 100vw is the viewport and the negative margin is exactly half the
+   overshoot. */
+.hero {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  min-height: min(88vh, 780px);
+  display: grid;
+  align-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The words sit in a readable pocket without the whole picture being dimmed.
+   It has to sit *under* the words: as a plain `::after` it painted over them
+   and greyed the headline out. */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(100deg, rgba(19, 17, 16, 0.94) 0%, rgba(19, 17, 16, 0.7) 40%, rgba(19, 17, 16, 0) 74%);
+  pointer-events: none;
+}
+
+.hero-body {
+  z-index: 1;
+}
+
+.hero-body {
+  position: relative;
+  max-width: var(--wrap);
+  width: 100%;
+  margin: 0 auto;
+  /* The words stay on the same column as everything below them, even though
+     the picture behind them does not. */
+  padding: 5rem var(--gutter);
+}
+
+.hero h1 {
+  font: 700 clamp(2.1rem, 6.2vw, 4.2rem) / 1.08 var(--mono);
+  margin: 0.4em 0 0.5em;
+  letter-spacing: -0.045em;
+  color: #fff;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.55);
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--amber);
+}
+
+.hero-lede {
+  max-width: 48ch;
+  font-size: 1.15rem;
+  color: var(--text);
+  text-shadow: 0 1px 24px rgba(0, 0, 0, 0.75);
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-top: 2.2rem;
+}
+
+.hero-note {
+  font: 400 0.8rem/1.6 var(--mono);
+  color: var(--dim);
+  margin-top: 1.2rem;
+  max-width: 56ch;
+}
+
+.tag {
+  font: 400 0.78rem/1.4 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0;
+}
+
+/* One button on the whole site, and it is the only thing anyone must click. */
+.download {
+  display: inline-block;
+  background: var(--amber);
+  color: var(--ground);
+  text-decoration: none;
+  padding: 0.85em 1.8em;
+  font: 500 1rem/1 var(--mono);
+  border-radius: 2px;
+}
+
+.download:hover {
+  background: #f0b846;
+  color: var(--ground);
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--line-bright);
+  color: var(--dim);
+  padding: 0.85em 1.4em;
+  font: 400 0.9rem/1 var(--mono);
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.ghost:hover:not(:disabled) {
+  border-color: var(--amber-dim);
+  color: var(--amber);
+}
+
+.ghost:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ── demos ─────────────────────────────────────────────────────────────── */
+
+.demo {
+  /* Its own half of the section, filling it. Bounded by its container and
+     never by the viewport — that was what overflowed at 768 and 1024. */
+  width: 100%;
+  min-width: 0;
+}
+
+.demo-stage {
+  /* Not 16:9. That is the shape of an *output*, and this is not one any more —
+     it is a meter, and a meter is wide and short. At 16:9 the columns were
+     tall enough to read as a chart. */
+  aspect-ratio: 5 / 2;
+  /* The site's own ground, not black. A black rectangle in the middle of a
+     near-black page reads as a hole in it. */
+  background: var(--ground);
+  overflow: hidden;
+}
+
+.demo-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.demo-controls {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font: 400 0.8rem/1 var(--mono);
+  color: var(--dim);
+}
+
+.ctl output {
+  color: var(--text);
+  min-width: 3.2em;
+}
+
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12rem;
+  height: 10px;
+  background: var(--line);
+  cursor: ew-resize;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 6px;
+  height: 18px;
+  background: var(--amber);
+  cursor: ew-resize;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 6px;
+  height: 18px;
+  border: 0;
+  background: var(--amber);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+}
+
+.segmented button {
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--line);
+  color: var(--dim);
+  padding: 0.4em 0.9em;
+  font: 400 0.78rem/1 var(--mono);
+  cursor: pointer;
+}
+
+.segmented button:last-child {
+  border-right: 0;
+}
+
+.segmented button.on {
+  background: var(--amber-ghost);
+  color: var(--amber);
+}
+
+/* ── the bands, and the modulated faders ───────────────────────────────── */
+
+.bands,
+.pfaders {
+  display: grid;
+  gap: 0.45rem;
+  background: var(--panel);
+  padding: 1.1rem 1.2rem;
+}
+
+.band,
+.pfader {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr) 3.4rem;
+  align-items: center;
+  gap: 1rem;
+  font: 400 0.78rem/1.6 var(--mono);
+}
+
+.band .k,
+.pfader .k {
+  color: var(--dim);
+}
+
+.band .v,
+.pfader .v {
+  color: var(--text);
+  text-align: right;
+}
+
+.band .track,
+.pfader .track {
+  position: relative;
+  height: 10px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.band .track i {
+  display: block;
+  height: 100%;
+  background: var(--amber);
+  width: 0;
+}
+
+.pfader .track i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.pfader .range {
+  background: var(--amber-ghost);
+}
+
+.pfader .fill {
+  left: 0;
+  background: var(--amber);
+}
+
+.pfader .notch {
+  width: 1px;
+  background: var(--text);
+}
+
+/* ── the ladder ────────────────────────────────────────────────────────── */
+
+.ladder {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  margin: 1.8rem 0;
+}
+
+.rung {
+  display: grid;
+  grid-template-columns: 2.4rem 12rem minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: baseline;
+  background: var(--ground);
+  padding: 0.8rem 1.1rem;
+  font: 400 0.82rem/1.55 var(--mono);
+  color: var(--dim);
+}
+
+.rung .n {
+  font: 500 1.1rem/1 var(--mono);
+  color: var(--faint);
+}
+
+.rung .name {
+  color: var(--text);
+}
+
+.rung.now {
+  background: var(--panel);
+}
+
+.rung.now .n,
+.rung.now .name {
+  color: var(--amber);
+}
+
+.rung .here {
+  color: var(--amber);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── plain lists, and the closer ───────────────────────────────────────── */
+
+ul.plain {
+  list-style: none;
+  padding: 0;
+  margin: 1.6rem 0 0;
+  display: grid;
+  gap: 1rem;
+  max-width: var(--measure);
+}
+
+ul.plain strong {
+  color: var(--text);
+}
+
+ul.plain li {
+  color: var(--dim);
+  border-left: 2px solid var(--line-bright);
+  padding-left: 1rem;
+}
+
+.closer {
+  border-top: 1px solid var(--line);
+  padding: 5rem 0 6rem;
+  text-align: center;
+}
+
+.closer h2 {
+  font: 700 clamp(1.5rem, 3.4vw, 2.2rem) / 1.25 var(--mono);
+  letter-spacing: -0.035em;
+  margin: 0 0 0.5em;
+  color: var(--text);
+}
+
+.closer p {
+  max-width: 46ch;
+  margin: 0 auto;
+  color: var(--dim);
+}
+
+.closer .hero-actions {
+  justify-content: center;
+}
+
+/* Below this, two columns are narrower than either of them needs. */
+@media (max-width: 62rem) {
+  section.part,
+  section.part:nth-of-type(even) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+    padding: 3.5rem 0;
+    align-items: start;
+  }
+
+  /* One column, so the row has to be released again — pinning both children
+     to row 1 here would stack the picture on top of the words. */
+  section.part > .body,
+  section.part:nth-of-type(even) > .body {
+    grid-column: 1;
+    grid-row: auto;
+    order: 0;
+  }
+
+  section.part > .demo,
+  section.part:nth-of-type(even) > .demo {
+    grid-column: 1;
+    grid-row: auto;
+    order: 1;
+  }
+}
+
+@media (max-width: 40rem) {
+  .lede {
+    padding-top: 3rem;
+  }
+  section.part {
+    /* `1fr` is `minmax(auto, 1fr)`, and `auto` takes the width of the widest
+       child — so a code block forced this column to 608px inside a 390px
+       page, and the whole document sideways with it. The desktop rule already
+       says `minmax(0, 1fr)` for exactly this reason; overriding it here undid
+       that. Measured at 390×844. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+  section.part > .num {
+    line-height: 1.4;
+  }
+  .meter {
+    grid-template-columns: 6rem minmax(0, 1fr) 3.6rem;
+  }
+
+  /* A four-column tier table does not fit a phone and must not take the page
+     sideways with it. It scrolls inside itself instead. */
+  .doc table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .band,
+  .pfader {
+    grid-template-columns: 7rem minmax(0, 1fr) 3rem;
+    gap: 0.6rem;
+    font-size: 0.72rem;
+  }
+
+  .rung {
+    grid-template-columns: 1.8rem minmax(0, 1fr);
+    row-gap: 0.2rem;
+  }
+
+  .rung .what,
+  .rung .here {
+    grid-column: 2;
+  }
+
+  .demo-controls {
+    gap: 1rem;
+  }
+
+  input[type='range'] {
+    width: 8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── the surface, drawn ────────────────────────────────────────────────── */
+
+/* A rendition rather than a screenshot: it cannot go stale against the
+   application, it weighs nothing to load, and it reflows at any width. */
+.shot {
+  background: var(--ground);
+  font: 400 0.62rem/1.5 var(--mono);
+  overflow: hidden;
+}
+
+.shot-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.shot .mark {
+  color: var(--amber);
+  letter-spacing: 0.18em;
+}
+.shot .f {
+  color: var(--faint);
+}
+.shot .a {
+  color: var(--amber);
+}
+.shot .grow {
+  flex: 1;
+}
+
+.mini {
+  display: inline-block;
+  width: 44px;
+  height: 10px;
+  background: repeating-linear-gradient(90deg, var(--amber) 0 3px, transparent 3px 5px) left / var(--lit, 58%) 100% no-repeat,
+    repeating-linear-gradient(90deg, var(--line-bright) 0 3px, transparent 3px 5px);
+}
+
+.shot-body {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr) 11rem;
+}
+
+.shot-col {
+  padding: 0.7rem 0.8rem;
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+  border-right: 1px solid var(--line);
+}
+
+.shot-col.right {
+  border-right: 0;
+}
+
+.shot .h {
+  color: var(--dim);
+  letter-spacing: 0.14em;
+}
+.shot .h em {
+  color: var(--amber);
+  font-style: normal;
+  letter-spacing: 0;
+}
+.shot .h em.fs {
+  float: right;
+  border: 1px solid var(--line-bright);
+  color: var(--dim);
+  padding: 0 0.4em;
+}
+
+.lay,
+.prm {
+  display: grid;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.lay {
+  grid-template-columns: 0.9rem minmax(0, 1fr) auto;
+}
+.lay .bar {
+  grid-column: 1 / -1;
+}
+.lay b {
+  color: var(--faint);
+  font-weight: 400;
+}
+.lay i {
+  color: var(--good);
+  font-style: normal;
+}
+
+.prm {
+  grid-template-columns: minmax(4.5rem, 8rem) minmax(0, 1fr) 2.6rem;
+  border: 0;
+  background: transparent;
+  padding: 0.28rem 0.45rem;
+}
+.prm .tag2 {
+  color: var(--amber-dim);
+  font-size: 0.55rem;
+  grid-column: 1;
+  justify-self: end;
+}
+.prm u {
+  text-decoration: none;
+  color: var(--text);
+  text-align: right;
+}
+
+.lay.sel,
+.prm.sel {
+  background: var(--lift);
+  border-left: 2px solid var(--amber);
+}
+
+.bar {
+  position: relative;
+  height: 6px;
+  background: var(--line);
+  overflow: hidden;
+}
+.bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--v, 50%);
+  background: var(--amber);
+}
+.bar.mod::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--r, 0%);
+  width: var(--w, 0%);
+  background: var(--amber-ghost);
+}
+
+.sw {
+  width: 22px;
+  height: 11px;
+  border-radius: 6px;
+  background: var(--amber-ghost);
+  position: relative;
+}
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 1.5px;
+  left: 12px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+.sq {
+  width: 14px;
+  height: 14px;
+  background: #ff8800;
+  border: 1px solid var(--line-bright);
+}
+
+.shot-stage {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--line);
+}
+.shot-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pane {
+  display: flex;
+  justify-content: space-between;
+  background: var(--panel);
+  padding: 0.3rem 0.5rem;
+  color: var(--dim);
+}
+
+@media (max-width: 52rem) {
+  .shot-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .shot-col {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* ── the footer, the same on every page ────────────────────────────────── */
+
+.site-foot {
+  border-top: 1px solid var(--line);
+  margin-top: 4rem;
+  padding: 2.25rem 0 3rem;
+}
+
+.foot-inner {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.foot-mark {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.foot-mark span {
+  display: block;
+  color: var(--faint);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  margin-top: 0.25rem;
+}
+
+.foot-nav {
+  display: flex;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+  font-size: 0.78rem;
+}
+
+.foot-nav a {
+  color: var(--dim);
+  text-decoration: none;
+}
+
+.foot-nav a:hover {
+  color: var(--amber);
+}
+
+.social {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.social a {
+  color: var(--faint);
+  display: inline-flex;
+  padding: 0.25rem;
+}
+
+.social a:hover {
+  color: var(--amber);
+}
+
+.social svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+@media (max-width: 40rem) {
+  .foot-nav {
+    margin-left: 0;
+    width: 100%;
+    gap: 1rem;
+  }
+}
+
+/* ── the phone ──────────────────────────────────────────────────────────
+ *
+ * Last in the file on purpose. These were first written inside the "narrow
+ * screens" block near the top and silently did nothing: `.hero-lede` and the
+ * document rules are defined *after* it, and at equal specificity the later
+ * rule wins. **A media query is not a cascade override.**
+ */
+@media (max-width: 40rem) {
+  /* ── the type scale, for a phone ──────────────────────────────────────
+   *
+   * The desktop scale was being used unchanged on a 390px screen. Measured
+   * there: the hero's lede at 18.4px across 334px is **about eighteen
+   * characters a line**, and body text at 16px is thirty-six. Type set for a
+   * 736px column does not become mobile design by being put in a 334px one.
+   *
+   * Everything here is one step down. `--measure` is untouched: on a phone the
+   * screen is the measure, and the gutter is what is left of it.
+   */
+  body {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .hero-lede,
+  .lede p {
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  .doc p,
+  .doc li {
+    font-size: 0.95rem;
+  }
+
+  .doc h2 {
+    font-size: 1.15rem;
+    margin-top: 2.25rem;
+    padding-top: 1.25rem;
+  }
+
+  .doc h3 {
+    font-size: 0.98rem;
+  }
+
+  .doc table {
+    font-size: 0.82rem;
+  }
+
+  /* ── tap targets ─────────────────────────────────────────────────────
+   *
+   * A pointer is exact and a thumb is not. Eighteen of the nineteen links on
+   * the home page were under 44px tall, which is the size a finger actually
+   * covers — the same fault as the application's 10px faders, in the same week
+   * and for the same reason: a size chosen by looking rather than by
+   * measuring. */
+  .masthead nav a,
+  .foot-nav a,
+  .social a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .masthead nav {
+    row-gap: 0;
+  }
+
+  .masthead .inner {
+    padding-bottom: 0;
+  }
+
+  .download,
+  .ghost {
+    min-height: 48px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-actions {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  /* The hero's pocket is a *horizontal* gradient — the words on the left, the
+     animal on the right. In portrait there is no left and right: the picture
+     is behind all of it, and the lede and the note under the buttons were
+     being read over lit particles. Vertical, and darker, for a screen that is
+     taller than it is wide. */
+  .hero::after {
+    background: linear-gradient(
+      180deg,
+      rgba(19, 17, 16, 0.92) 0%,
+      rgba(19, 17, 16, 0.8) 45%,
+      rgba(19, 17, 16, 0.62) 100%
+    );
+  }
+
+  .hero {
+    min-height: min(78vh, 640px);
+  }
+
+  .hero-body {
+    padding: 3rem var(--gutter);
+  }
+}

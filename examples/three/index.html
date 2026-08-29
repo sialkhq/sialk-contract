@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="sialk-contract" content="1" />
+    <title>Sialk — Three.js sketch</title>
+    <!--sialk:fonts-->
+    <link rel="stylesheet" href="../site.css" />
+    <style>
+      /* Only what is specific to a fullscreen sketch. Everything else is site.css. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #05050a;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+    <!-- Three.js from a CDN, which is how a Three.js author already works.
+         It means this page needs the network; nothing else here does. -->
+    <script type="importmap">
+      { "imports": { "three": "https://esm.sh/three@0.180.0" } }
+    </script>
+  </head>
+  <body>
+    <!--sialk:backlink-->
+    <div class="sketch-start" id="start">
+      Click anywhere to start — the browser needs a gesture before it will open the microphone
+    </div>
+
+    <script type="module">
+      import * as THREE from 'three';
+      const start = document.getElementById('start');
+      if (window.sialk) {
+        // A host has already installed the contract, so there is no gesture to
+        // wait for and no microphone to ask about — the host provides the audio.
+        // A sketch that waits for a click cannot be hosted: an offscreen browser
+        // has nothing to click it.
+        start.remove();
+        run(window.sialk);
+      } else {
+        start.addEventListener('click', async () => {
+          start.remove();
+          // Loaded only when running outside a host. A hosted sketch must not
+          // hard-depend on the shim: it is not served from the sketch's own
+          // origin, and a failed static import stops the whole module.
+          const { installShim } = await import('../sialk-shim.js');
+          await installShim({ source: 'microphone' });
+          run(window.sialk);
+        });
+      }
+
+      function run(sialk) {
+        const { audio, transport, output } = sialk;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(1); // The contract already reports device pixels.
+        document.body.append(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x05050a, 0.055);
+
+        const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+        camera.position.set(0, 0, 9);
+
+        const core = new THREE.Mesh(
+          new THREE.IcosahedronGeometry(2, 3),
+          new THREE.MeshStandardMaterial({
+            color: 0xd8c6b1,
+            roughness: 0.35,
+            metalness: 0.6,
+            flatShading: true,
+          }),
+        );
+        scene.add(core);
+
+        const shell = new THREE.Mesh(
+          new THREE.IcosahedronGeometry(2.6, 1),
+          new THREE.MeshBasicMaterial({
+            color: 0xa8815a,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.25,
+          }),
+        );
+        scene.add(shell);
+
+        const key = new THREE.PointLight(0xffffff, 60);
+        key.position.set(5, 6, 6);
+        scene.add(key, new THREE.AmbientLight(0x404050, 2));
+
+        // 64 bars, one per contract spectrum bin, in a ring around the core.
+        const bars = new THREE.InstancedMesh(
+          new THREE.BoxGeometry(0.14, 1, 0.14),
+          new THREE.MeshStandardMaterial({ color: 0xe4d6c4, roughness: 0.5 }),
+          audio.spectrum.length,
+        );
+        scene.add(bars);
+        const matrix = new THREE.Matrix4();
+
+        let lastHits = audio.hits;
+        let flash = 0;
+
+        renderer.setAnimationLoop(() => {
+          // The output surface is the projector inside Sialk, this window outside it.
+          if (
+            renderer.domElement.width !== output.width ||
+            renderer.domElement.height !== output.height
+          ) {
+            renderer.setSize(output.width, output.height, false);
+            camera.aspect = output.width / output.height;
+            camera.updateProjectionMatrix();
+          }
+
+          if (audio.hits !== lastHits) {
+            lastHits = audio.hits;
+            flash = 1;
+          }
+          flash *= 0.88;
+
+          const scale = 1 + audio.bass * 0.6 + audio.onBeat * 0.18;
+          core.scale.setScalar(scale);
+          core.rotation.x = transport.elapsed * 0.22;
+          core.rotation.y = transport.elapsed * 0.31;
+          core.material.emissive.setScalar(flash * 0.55);
+
+          shell.rotation.x = -transport.elapsed * 0.13;
+          shell.rotation.z = transport.elapsed * 0.17;
+          shell.material.opacity = 0.12 + audio.high * 0.7;
+
+          for (let i = 0; i < audio.spectrum.length; i++) {
+            const angle = (i / audio.spectrum.length) * Math.PI * 2;
+            const height = 0.25 + audio.spectrum[i] * 5;
+            const radius = 4.2;
+            matrix.makeTranslation(
+              Math.cos(angle) * radius,
+              height / 2 - 2.4,
+              Math.sin(angle) * radius,
+            );
+            matrix.scale(new THREE.Vector3(1, height, 1));
+            bars.setMatrixAt(i, matrix);
+          }
+          bars.instanceMatrix.needsUpdate = true;
+
+          key.intensity = 30 + audio.level * 140;
+          renderer.render(scene, camera);
+        });
+      }
+    </script>
+  </body>
+</html>
