@@ -34,7 +34,7 @@ void main() {
   float pulse = (1.0 - sialkBeatPhase) * step(1.0, sialkBpm);
 
   // Transparent where it does not paint, so the layers under it show through:
-  // `0030`, and the whole reason a stack works.
+  // the project decision record, and the whole reason a stack works.
   float alpha = lit * (0.30 + 0.45 * sialkLevel + 0.25 * pulse);
   fragColor = vec4(tint * alpha, alpha);
 }

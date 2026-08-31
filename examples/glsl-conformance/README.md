@@ -12,7 +12,7 @@ the shader assembled from them actually compiles, links and paints on a GPU.
 | --- | --- |
 | `mainimage-alias` | `mainImage` whose output parameter is **not** called `fragColor`. The host must still supply an output and wrap it. |
 | `named-output` | Declares `out vec4 myPixel;` of its own **and** uses `mainImage`. The host must leave the declaration alone and pass the right name to the wrapper. |
-| `will-not-compile` | Deliberately malformed. The host must report **one** line, at the sketch's own line number, and paint nothing — beta rule 3, a failing layer never takes the canvas. |
+| `will-not-compile` | Deliberately malformed. The host must report **one** line, at the sketch's own line number, and paint nothing — a failing layer never takes the canvas. |
 
 ## Why these exist
 

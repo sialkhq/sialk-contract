@@ -131,6 +131,8 @@ export async function installShim(options: ShimOptions = {}): Promise<ShimHandle
         onsetStrength: 0,
         beat: false,
         bpm: 0,
+        percussive: 0,
+        harmonic: 0,
         bpmConfidence: 0,
       });
     },

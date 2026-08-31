@@ -5,6 +5,10 @@ more to come — into live, audio-reactive instruments for the stage. It speaks
 to a sketch through one thing: `window.sialk`, an object that is present
 before your first line runs and carries the music as ordinary numbers —
 loudness, three bands, a spectrum, onsets, tempo, and the phase of the beat.
+Since 1.1, how much of the moment is drums against notes (`percussive`,
+`harmonic`); since 1.2, up to eight per-stem levels and bands
+(`audio.stems`), for hosts that receive stems — and zeros everywhere else,
+which is a true statement rather than an error.
 
 This repository is everything you need to **write against that contract**,
 with or without Sialk installed. All of it is MIT.

@@ -1,6 +1,8 @@
-# The Sialk Audio Contract — v1.0.0
+# The Sialk Audio Contract — v1.2.0
 
-**Status:** DRAFT. Not yet published. Freezes at publication.
+**Status:** v1.2.0 — published 29 August 2026, and frozen. Additions arrive as minor versions; a removal or a changed meaning would be a major version, served alongside v1 rather than replacing it.
+**Changed in 1.2.0 (30 August 2026):** `audio.stems` and `audio.stemCount` added — real per-stem input from a multichannel device. Nothing removed, renamed or redefined; with no stem input configured, `stemCount` is 0 and every stem reads zeros.
+**Changed in 1.1.0 (30 August 2026):** `audio.percussive` and `audio.harmonic` added. Nothing removed, renamed or redefined, so a sketch written against 1.0.0 is unaffected and needs no change.
 **Global:** `window.sialk`
 **Applies to:** any web content hosted by Sialk, and any content using `@sialk/shim` outside it.
 
@@ -16,11 +18,11 @@ The names below borrow deliberately from Synesthesia's vocabulary. It is field-t
 
 ## 2. The whole surface
 
-Everything in v1.0.0. Nothing else is in the contract; anything not listed here is not guaranteed to exist.
+Everything in v1, annotated with the minor version that added it — an unmarked line has been there since 1.0.0. Nothing else is in the contract; anything not listed here is not guaranteed to exist.
 
 ```ts
 window.sialk = {
-  contractVersion: '1.0.0',
+  contractVersion: '1.2.0',
   host: { name: 'sialk' | 'shim' | string, version: string },
 
   audio: {
@@ -30,12 +32,16 @@ window.sialk = {
     high:          number,        // 0..1  ~2000–16000 Hz
     spectrum:      Float32Array,  // 64 bins, 0..1, log-spaced across 20 Hz–16 kHz
     levelTrail:    Float32Array,  // 128 frames of `level`, [0] is newest
+    percussive:    number,        // 0..1  share of this frame that is transient — drums   (1.1.0)
+    harmonic:      number,        // 0..1  share that is sustained — notes, pads, held vocals (1.1.0)
     hits:          number,        // monotonic onset counter, never resets mid-show
     onBeat:        number,        // 1 on the frame a beat lands, decaying to 0 before the next
     beatPhase:     number,        // 0..1, ramps from 0 at each beat towards the next; 0 when bpm is 0
     bpm:           number,        // 0 when unknown
     bpmConfidence: number,        // 0..1, 0 when unknown
     silent:        boolean,       // true when no signal has been present for 1s
+    stems:         Stem[],        // always 8 entries; zeros past stemCount            (1.2.0)
+    stemCount:     number,        // how many stems are real; 0 with no stem input     (1.2.0)
   },
 
   transport: {
@@ -62,6 +68,16 @@ window.sialk = {
 
   on(event, listener): () => void,
   off(event, listener): void,
+};
+
+// (1.2.0) One stem — one instrument's worth of the mix, from a multichannel
+// input. The same estimators as the master fields, so stems[i].bass and
+// audio.bass are the same kind of number.
+type Stem = {
+  level: number,   // 0..1  broadband loudness of this stem alone
+  bass:  number,   // 0..1  ~20–250 Hz
+  mid:   number,   // 0..1  ~250–2000 Hz
+  high:  number,   // 0..1  ~2000–16000 Hz
 };
 
 type ParameterDescriptor =
@@ -117,6 +133,12 @@ This is why the contract is built before any user interface code. It is the only
 **`spectrum`** — 64 log-spaced bins, because linear FFT bins waste three-quarters of their resolution above 5 kHz where almost nothing musical distinguishes itself. 64 is a texture width that costs nothing to upload.
 
 **`levelTrail`** — `[0]` is this frame, `[127]` is 128 frames ago. At 60 fps that is about two seconds of history, which is the range in which a trail is legible as motion.
+
+**`percussive` and `harmonic`** *(1.1.0)* — a **share of this frame, not a loudness.** A quiet drum solo reads `percussive` near 1; a wall of loud pads reads near 0. Multiply by `level` when you want *how hard is the kick*, read it alone when you want *how drum-like is this passage*. The two are shares of the same frame, so they fall together in silence rather than summing to 1.
+
+This is a harmonic/percussive split, **not stem separation**, and the difference is worth stating: it cannot tell a vocal from a synth pad, because both are sustained. What it does is answer *react to the drums and not the melody* — the one thing working VJs asked for — without shipping a model, licensing weights, or spending the lookahead that would put the picture behind the music. The filter is causal by design: it reads only frames that have already happened, so it separates a little less cleanly and never makes you late.
+
+**`stems` and `stemCount`** *(1.2.0)* — real per-stem input, when the operator has routed one: a DAW sends each instrument to a channel pair of a multichannel device, and each pair arrives here as a stem. **The array always has 8 entries and their identities never change** — destructure `const drums = sialk.audio.stems[0]` once at startup and hold it; entries at `stemCount` and beyond read all zeros. Stems are **ordered, not named**: stem *n* is channel pair *n*, so the DAW's routing is the mapping and this document does not impose one. Which instrument is stem 0 is a fact about tonight's session — document your own assumption in your sketch. `stemCount` is 0 on every machine where no stem input is configured, which is most machines: degrade to the master fields when it is 0, and say so, rather than drawing eight flat bars. In GLSL hosts the same data arrives as `sialkStems[8]` (`vec4` — level, bass, mid, high) beside `sialkStemCount`; index with a constant or a loop counter, which is all ES 1.00 fragment shaders allow.
 
 **`hits`** — a counter, not a flag, so a sketch that misses a frame still sees the onset. Compare against last frame's value: `if (audio.hits !== last) { ... }`.
 
@@ -197,8 +219,8 @@ The same file then runs on a laptop in a browser and on stage in Sialk, unchange
 
 | Left out                                       | Reason                                                                                                                                                                                             |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sketch parameters exposed to MIDI and keyboard | Planned. Additive when it lands — a `1.1.0`, breaking nothing.                                                                                                                                     |
-| Raw FFT, raw PCM, per-channel audio            | A contract is a promise to maintain. Raw buffers promise an implementation, and the implementation is going to change.                                                                             |
+| Sketch parameters exposed to MIDI and keyboard | Planned. Additive when it lands — a minor version, breaking nothing.                                                                                                                                     |
+| Raw FFT, raw PCM, raw per-channel audio        | A contract is a promise to maintain. Raw buffers promise an implementation, and the implementation is going to change. The *analysed* form of per-channel audio arrived in 1.2.0 as `stems`, which promises meanings rather than buffers.                                                                             |
 | Scene state, layer state, other layers' output | Further out. Adding it now would freeze decisions not yet made.                                                                                                                  |
 | Control functions — play, stop, cue            | The sketch is an instrument being played, not the thing playing it. `window.obsstudio` carries control functions because OBS content is a source in a broadcast; Sialk content is the performance. |
 | MIDI clock, external sync                      | Further out, and it belongs in `transport`, additively.                                                                                                                                |

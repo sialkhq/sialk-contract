@@ -4,7 +4,23 @@
  */
 
 /** Semver, and the only thing a sketch should branch on. */
-export const CONTRACT_VERSION = '1.0.0';
+/*
+ * **1.1.0 — `audio.percussive` and `audio.harmonic`, added 30 Aug 2026.**
+ *
+ * A minor version, because the specification's versioning policy says so and because it is true: nothing was
+ * removed, renamed or given a new meaning, so every sketch written against
+ * 1.0.0 sees exactly what it saw. A sketch that wants the new fields can check
+ * `contractVersion`, and one that does not never learns they exist.
+ *
+ * **1.2.0 — `audio.stems` and `audio.stemCount`, added 30 August 2026.**
+ *
+ * Real per-stem input: a multichannel device carries one instrument per
+ * channel pair, captured outside Chromium by a native helper. Additive for
+ * the same reasons as 1.1.0 — with no stem input configured, `stemCount` is 0
+ * and every stem reads zeros, which is a true statement about an input that
+ * is not there.
+ */
+export const CONTRACT_VERSION = '1.2.0';
 
 /** Major version served when a sketch declares no `<meta name="sialk-contract">`. */
 export const CONTRACT_MAJOR = 1;
@@ -28,6 +44,17 @@ export const BAND_EDGES = {
   mid: [250, 2_000],
   high: [2_000, 16_000],
 } as const satisfies Record<'bass' | 'mid' | 'high', readonly [number, number]>;
+
+/**
+ * The stems array is always this long, whatever the input carries (1.2.0).
+ *
+ * Fixed rather than sized to the device, for the same reason `spectrum` is
+ * always 64 bins: identity stability. A sketch destructures `stems[3]` once
+ * at startup and holds it for life; entries past `stemCount` read all zeros.
+ * Eight is a 16-channel device in stereo pairs — the largest loopback layout
+ * in common use, and a GLSL uniform array has to pick a number.
+ */
+export const MAX_STEMS = 8;
 
 /** No signal for this long and `audio.silent` goes true. */
 export const SILENCE_TIMEOUT_SECONDS = 1;

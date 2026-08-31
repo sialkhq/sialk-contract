@@ -4,7 +4,7 @@ import type { SialkEventMap, SialkEventName, SialkListener } from './types.js';
  * The contract's event surface. Deliberately tiny: it exists so a sketch can
  * react to a beat without polling, not to become a general message bus.
  *
- * A listener that throws is swallowed and reported, never propagated — rule 7
+ * A listener that throws is swallowed and reported, never propagated — contract rule 7
  * of the contract is that the host never throws into the sketch, and the
  * inverse is that a sketch never takes the host down.
  */

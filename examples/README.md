@@ -71,7 +71,7 @@ stylesheet sit beside the pages.
 | ------------------ | -------------------------------------------------------------------------------------------------- |
 | `inspector/`       | Every field of the contract, live. Start here — confirm audio is arriving before writing a sketch. |
 | `minimal/`         | Raw WebGL2, no libraries. The contract integration is four lines.                                  |
-| `three/`           | A Three.js scene driven by bands, onsets and beats. Loads Three.js from a CDN. **Three.js arrives in Sialk at v3**; in the browser it works today. |
+| `three/`           | A Three.js scene driven by bands, onsets and beats. Loads Three.js from a CDN. The page runs in any browser today; that kind of sketch is not in Sialk yet. |
 | `existing-sketch/` | The same sketch before and after conversion, with the `draw()` function identical in both.         |
 
 ## Writing your own

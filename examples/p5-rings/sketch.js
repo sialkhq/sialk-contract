@@ -22,7 +22,7 @@ function setup() {
   //
   // Declared once, at startup. In the beta the Inspector shows these as live
   // readouts — name, range and current value, the bar a meter rather than a
-  // fader — and the sketch is the only thing that writes them (`0047`).
+  // fader — and the sketch is the only thing that writes them.
   // Editing them from the surface arrives at v1, and this sketch does not
   // change when it does: the declaration is the whole contract.
   window.sialk?.parameters.declare({

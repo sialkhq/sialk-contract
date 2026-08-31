@@ -1,4 +1,4 @@
-import { LEVEL_TRAIL_FRAMES, SPECTRUM_BINS } from './constants.js';
+import { LEVEL_TRAIL_FRAMES, MAX_STEMS, SPECTRUM_BINS } from './constants.js';
 
 /**
  * Runtime conformance check for a `window.sialk` candidate.
@@ -61,6 +61,29 @@ export function checkConformance(candidate: unknown): string[] {
     const trail = audio['levelTrail'];
     if (!(trail instanceof Float32Array) || trail.length !== LEVEL_TRAIL_FRAMES) {
       fail(`audio.levelTrail must be a Float32Array of ${LEVEL_TRAIL_FRAMES}`);
+    }
+    // 1.2.0: always MAX_STEMS entries, zeros past stemCount — the identity rule.
+    const stems = audio['stems'];
+    if (!Array.isArray(stems) || stems.length !== MAX_STEMS) {
+      fail(`audio.stems must be an array of ${MAX_STEMS}`);
+    } else {
+      for (const [index, stem] of stems.entries()) {
+        for (const key of ['level', 'bass', 'mid', 'high']) {
+          const value = (stem as Record<string, unknown>)[key];
+          if (typeof value !== 'number' || !(value >= 0) || value > 1) {
+            fail(`audio.stems[${index}].${key} must be within 0..1, got ${String(value)}`);
+          }
+        }
+      }
+    }
+    const stemCount = audio['stemCount'];
+    if (
+      typeof stemCount !== 'number' ||
+      !Number.isInteger(stemCount) ||
+      stemCount < 0 ||
+      stemCount > MAX_STEMS
+    ) {
+      fail(`audio.stemCount must be an integer within 0..${MAX_STEMS}`);
     }
   }
 

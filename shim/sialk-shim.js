@@ -1,5 +1,5 @@
 // ../audio-contract/dist/constants.js
-var CONTRACT_VERSION = "1.0.0";
+var CONTRACT_VERSION = "1.2.0";
 var CONTRACT_MAJOR = 1;
 var SPECTRUM_BINS = 64;
 var LEVEL_TRAIL_FRAMES = 128;
@@ -10,6 +10,7 @@ var BAND_EDGES = {
   mid: [250, 2e3],
   high: [2e3, 16e3]
 };
+var MAX_STEMS = 8;
 var SILENCE_TIMEOUT_SECONDS = 1;
 
 // ../audio-contract/dist/emitter.js
@@ -273,6 +274,12 @@ function createContract(options) {
   const emitter = new ContractEmitter(options.onListenerError ? (event, error) => options.onListenerError?.(event, error) : void 0);
   const spectrum = new Float32Array(SPECTRUM_BINS);
   const levelTrail = new Float32Array(LEVEL_TRAIL_FRAMES);
+  const stems = Array.from({ length: MAX_STEMS }, () => ({
+    level: 0,
+    bass: 0,
+    mid: 0,
+    high: 0
+  }));
   const audio = {
     level: 0,
     bass: 0,
@@ -280,12 +287,16 @@ function createContract(options) {
     high: 0,
     spectrum,
     levelTrail,
+    percussive: 0,
+    harmonic: 0,
     hits: 0,
     onBeat: 0,
     beatPhase: 0,
     bpm: 0,
     bpmConfidence: 0,
-    silent: true
+    silent: true,
+    stems,
+    stemCount: 0
   };
   const transport = {
     time: 0,
@@ -333,8 +344,20 @@ function createContract(options) {
       audio.bass = clamp01(frame.bass);
       audio.mid = clamp01(frame.mid);
       audio.high = clamp01(frame.high);
+      audio.percussive = clamp01(frame.percussive);
+      audio.harmonic = clamp01(frame.harmonic);
       audio.bpm = Math.max(0, finite2(frame.bpm));
       audio.bpmConfidence = clamp01(frame.bpmConfidence);
+      const incoming = frame.stems ?? [];
+      audio.stemCount = Math.min(incoming.length, MAX_STEMS);
+      for (let i = 0; i < MAX_STEMS; i += 1) {
+        const stem = stems[i];
+        const from = i < audio.stemCount ? incoming[i] : void 0;
+        stem.level = clamp01(from?.level ?? 0);
+        stem.bass = clamp01(from?.bass ?? 0);
+        stem.mid = clamp01(from?.mid ?? 0);
+        stem.high = clamp01(from?.high ?? 0);
+      }
       const bins = Math.min(frame.spectrum.length, SPECTRUM_BINS);
       for (let i = 0; i < bins; i += 1) {
         spectrum[i] = clamp01(frame.spectrum[i] ?? 0);
@@ -568,7 +591,7 @@ var BandMapper = class {
    * signature of the bandwidth tilt rather than of the sound.
    *
    * Dividing by the width restores density, which is the quantity a spectrum
-   * display has always shown. It is **not** the mean this replaced (`0052`):
+   * display has always shown. It is **not** the mean this replaced:
    * the mean divides the *sum of magnitudes* by the width, which loses a tone
    * entirely in a wide bin; this divides the *energy* by the width and takes
    * the root, which keeps it.
@@ -714,8 +737,8 @@ var OnsetDetector = class {
     const scratch = this.#scratch.subarray(0, count);
     scratch.set(this.#history.subarray(0, count));
     scratch.sort();
-    const median = scratch[count >> 1] ?? 0;
-    return median * this.#multiplier + this.#bias;
+    const median2 = scratch[count >> 1] ?? 0;
+    return median2 * this.#multiplier + this.#bias;
   }
 };
 
@@ -854,6 +877,91 @@ function octavePreference(bpm) {
 }
 var clamp012 = (v) => v > 1 ? 1 : v > 0 ? v : 0;
 
+// ../audio-engine/dist/percussive.js
+var HISTORY = 9;
+var NEIGHBOURS = 9;
+function median(values, count) {
+  for (let i = 1; i < count; i += 1) {
+    const key = values[i] ?? 0;
+    let j = i - 1;
+    while (j >= 0 && (values[j] ?? 0) > key) {
+      values[j + 1] = values[j] ?? 0;
+      j -= 1;
+    }
+    values[j + 1] = key;
+  }
+  return values[count >> 1] ?? 0;
+}
+var PercussiveSeparator = class {
+  #bins;
+  /** `HISTORY` frames of spectrum, oldest-first by ring index. */
+  #history;
+  #scratchTime = new Float32Array(HISTORY);
+  #scratchFreq = new Float32Array(NEIGHBOURS);
+  #at = 0;
+  #filled = 0;
+  constructor(bins) {
+    this.#bins = bins;
+    this.#history = new Float32Array(bins * HISTORY);
+  }
+  /**
+   * @param spectrum one frame, any scale, `bins` long. Not retained.
+   * @returns the two levels, each 0..1, relative to the frame's own energy —
+   *   so this answers *how much of what you are hearing is drums*, not *how
+   *   loud is it*. Loudness is `level`, and a sketch that wants both has both.
+   */
+  process(spectrum) {
+    const bins = this.#bins;
+    const base = this.#at * bins;
+    for (let i = 0; i < bins; i += 1)
+      this.#history[base + i] = spectrum[i] ?? 0;
+    this.#at = (this.#at + 1) % HISTORY;
+    if (this.#filled < HISTORY)
+      this.#filled += 1;
+    let percussiveSum = 0;
+    let harmonicSum = 0;
+    let total = 0;
+    for (let bin = 0; bin < bins; bin += 1) {
+      const value = spectrum[bin] ?? 0;
+      if (value <= 0)
+        continue;
+      for (let f = 0; f < this.#filled; f += 1) {
+        this.#scratchTime[f] = this.#history[f * bins + bin] ?? 0;
+      }
+      const harmonic = median(this.#scratchTime, this.#filled);
+      let count = 0;
+      const half = NEIGHBOURS >> 1;
+      for (let n = -half; n <= half; n += 1) {
+        const at = bin + n;
+        if (at < 0 || at >= bins)
+          continue;
+        this.#scratchFreq[count] = spectrum[at] ?? 0;
+        count += 1;
+      }
+      const percussive = median(this.#scratchFreq, count);
+      const hh = harmonic * harmonic;
+      const pp = percussive * percussive;
+      const sum = hh + pp;
+      if (sum <= 0)
+        continue;
+      percussiveSum += value * (pp / sum);
+      harmonicSum += value * (hh / sum);
+      total += value;
+    }
+    if (total <= 0)
+      return { percussive: 0, harmonic: 0 };
+    return {
+      percussive: Math.min(1, percussiveSum / total),
+      harmonic: Math.min(1, harmonicSum / total)
+    };
+  }
+  reset() {
+    this.#history.fill(0);
+    this.#at = 0;
+    this.#filled = 0;
+  }
+};
+
 // ../audio-engine/dist/analyser.js
 var AudioAnalyser = class {
   #fft;
@@ -865,6 +973,7 @@ var AudioAnalyser = class {
   #bands;
   #onset;
   #tempo;
+  #split;
   #levelEnv = new EnvelopeFollower();
   #bassEnv = new EnvelopeFollower();
   #midEnv = new EnvelopeFollower();
@@ -881,6 +990,7 @@ var AudioAnalyser = class {
     this.#bands = new BandMapper(fftSize, options.sampleRate);
     this.#onset = new OnsetDetector(fftSize / 2);
     this.#tempo = new TempoTracker(frameRate);
+    this.#split = new PercussiveSeparator(SPECTRUM_BINS);
   }
   /**
    * @param samples mono samples. Anything past ±1 is clamped to it, and
@@ -907,6 +1017,7 @@ var AudioAnalyser = class {
     const bass = this.#bassEnv.process(amplitudeToUnit(raw.bass), deltaSeconds);
     const mid = this.#midEnv.process(amplitudeToUnit(raw.mid), deltaSeconds);
     const high = this.#highEnv.process(amplitudeToUnit(raw.high), deltaSeconds);
+    const split = this.#split.process(this.#spectrum);
     const onset = this.#onset.process(this.#magnitudes, deltaSeconds);
     const tempo = this.#tempo.process(onset.flux, onset.strength, deltaSeconds);
     return {
@@ -915,6 +1026,8 @@ var AudioAnalyser = class {
       mid,
       high,
       spectrum: this.#spectrum,
+      percussive: split.percussive,
+      harmonic: split.harmonic,
       onsetStrength: onset.strength,
       beat: tempo.beat,
       bpm: tempo.bpm,
@@ -923,6 +1036,7 @@ var AudioAnalyser = class {
   }
   reset() {
     this.#onset.reset();
+    this.#split.reset();
     this.#tempo.reset();
     this.#levelEnv.reset();
     this.#bassEnv.reset();
@@ -1045,6 +1159,8 @@ async function installShim(options = {}) {
         onsetStrength: 0,
         beat: false,
         bpm: 0,
+        percussive: 0,
+        harmonic: 0,
         bpmConfidence: 0
       });
     }

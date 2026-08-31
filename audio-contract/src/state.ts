@@ -1,6 +1,7 @@
 import {
   CONTRACT_VERSION,
   LEVEL_TRAIL_FRAMES,
+  MAX_STEMS,
   SILENCE_TIMEOUT_SECONDS,
   SPECTRUM_BINS,
 } from './constants.js';
@@ -12,6 +13,7 @@ import type {
   SialkHost,
   SialkOutput,
   SialkParameters,
+  SialkStem,
   SialkTransport,
 } from './types.js';
 
@@ -24,6 +26,14 @@ export interface AudioFrameInput {
   high: number;
   /** SPECTRUM_BINS values, 0..1. Copied in, never retained. */
   spectrum: ArrayLike<number>;
+  /**
+   * How much of what is being heard is transient rather than sustained —
+   * drums against notes. **Not a loudness**: a quiet drum solo reads high and
+   * a loud pad reads low. Contract v1.1.
+   */
+  percussive: number;
+  /** The other half of the same split: sustained, tonal energy. 0..1. */
+  harmonic: number;
   /** > 0 when an onset landed on this frame. Its magnitude rides the `onset` event. */
   onsetStrength: number;
   /** True on the frame a beat lands. */
@@ -32,6 +42,13 @@ export interface AudioFrameInput {
   bpm: number;
   /** 0..1. 0 when unknown. */
   bpmConfidence: number;
+  /**
+   * Per-stem frames from a multichannel input, in stem order (1.2.0).
+   * Optional so every pre-1.2 caller is untouched: absent means no stem
+   * input, and the contract reports `stemCount` 0 with every stem at zero.
+   * Anything past `MAX_STEMS` is dropped.
+   */
+  stems?: readonly { level: number; bass: number; mid: number; high: number }[];
 }
 
 export interface TransportFrameInput {
@@ -114,6 +131,15 @@ export function createContract(options: CreateContractOptions): ContractWriter {
   const spectrum = new Float32Array(SPECTRUM_BINS);
   const levelTrail = new Float32Array(LEVEL_TRAIL_FRAMES);
 
+  // Always MAX_STEMS objects, allocated once — the identity rule again. A
+  // sketch holds `stems[3]` from its first line; the host refills it in place.
+  const stems = Array.from({ length: MAX_STEMS }, (): Mutable<SialkStem> => ({
+    level: 0,
+    bass: 0,
+    mid: 0,
+    high: 0,
+  }));
+
   const audio: Mutable<SialkAudio> = {
     level: 0,
     bass: 0,
@@ -121,12 +147,16 @@ export function createContract(options: CreateContractOptions): ContractWriter {
     high: 0,
     spectrum,
     levelTrail,
+    percussive: 0,
+    harmonic: 0,
     hits: 0,
     onBeat: 0,
     beatPhase: 0,
     bpm: 0,
     bpmConfidence: 0,
     silent: true,
+    stems,
+    stemCount: 0,
   };
 
   const transport: Mutable<SialkTransport> = {
@@ -186,8 +216,23 @@ export function createContract(options: CreateContractOptions): ContractWriter {
       audio.bass = clamp01(frame.bass);
       audio.mid = clamp01(frame.mid);
       audio.high = clamp01(frame.high);
+      audio.percussive = clamp01(frame.percussive);
+      audio.harmonic = clamp01(frame.harmonic);
       audio.bpm = Math.max(0, finite(frame.bpm));
       audio.bpmConfidence = clamp01(frame.bpmConfidence);
+
+      // Stems, refilled in place; the tail zeroed rather than left at last
+      // frame's values, exactly as the spectrum's tail is.
+      const incoming = frame.stems ?? [];
+      audio.stemCount = Math.min(incoming.length, MAX_STEMS);
+      for (let i = 0; i < MAX_STEMS; i += 1) {
+        const stem = stems[i]!;
+        const from = i < audio.stemCount ? incoming[i] : undefined;
+        stem.level = clamp01(from?.level ?? 0);
+        stem.bass = clamp01(from?.bass ?? 0);
+        stem.mid = clamp01(from?.mid ?? 0);
+        stem.high = clamp01(from?.high ?? 0);
+      }
 
       const bins = Math.min(frame.spectrum.length, SPECTRUM_BINS);
       for (let i = 0; i < bins; i += 1) {

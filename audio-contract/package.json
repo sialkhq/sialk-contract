@@ -1,6 +1,6 @@
 {
   "name": "@sialk/audio-contract",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "The Sialk audio contract \u2014 the versioned window.sialk global that sketches are written against.",
   "type": "module",
   "main": "./dist/index.js",
