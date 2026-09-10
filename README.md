@@ -1,7 +1,8 @@
 # The Sialk audio contract
 
-[Sialk](https://www.sialk.app) turns browser-made sketches — GLSL, p5, and
-more to come — into live, audio-reactive instruments for the stage. It speaks
+[Sialk Stage](https://www.sialk.net/stage) turns browser-made sketches — GLSL,
+p5 and Three.js, with more to come — into live, audio-reactive instruments for
+the stage. It speaks
 to a sketch through one thing: `window.sialk`, an object that is present
 before your first line runs and carries the music as ordinary numbers —
 loudness, three bands, a spectrum, onsets, tempo, and the phase of the beat.
@@ -11,7 +12,7 @@ Since 1.1, how much of the moment is drums against notes (`percussive`,
 which is a true statement rather than an error.
 
 This repository is everything you need to **write against that contract**,
-with or without Sialk installed. All of it is MIT.
+with or without Sialk Stage installed. All of it is MIT.
 
 ## What is here
 
@@ -34,12 +35,13 @@ with or without Sialk installed. All of it is MIT.
 Then read `window.sialk.audio.level`, `.bands`, `.onBeat` — the spec in
 `contract/` names every field and the twelve guarantees a host makes.
 
-The contract is also published at https://www.sialk.app/contract, and Sialk's
-free public beta — where these sketches become layers you mix on a wall — is
-at https://www.sialk.app/beta.
+The contract is also published at https://www.sialk.net/contract, and Sialk
+Stage's free public beta — where these sketches become layers you mix on a
+wall — is at https://www.sialk.net/stage/beta. Sialk Stage is made by
+[Sialk](https://www.sialk.net), London.
 
 ## Licence
 
-MIT, throughout — each folder carries its own LICENCE. The Sialk application
-itself is separate and not open source; a contract is the part that only
+MIT, throughout — each folder carries its own LICENCE. Sialk Stage itself is
+separate and not open source; a contract is the part that only
 works published.

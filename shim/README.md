@@ -3,7 +3,7 @@
 **Run a Sialk sketch in a plain browser.**
 
 Provides `window.sialk` from the microphone or an audio file, so a sketch can be
-written, tested and demonstrated without the Sialk application. Inside Sialk it
+written, tested and demonstrated without the Sialk Stage application. Inside Sialk Stage it
 does nothing at all — the host has already installed the real contract, and the
 shim stands aside rather than fighting it.
 
@@ -20,20 +20,20 @@ await installShim({ source: { kind: 'url', url: '/audio/track.mp3', loop: true }
 await installShim({ source: { kind: 'element', element: document.querySelector('audio') } });
 ```
 
-Then write the sketch exactly as you would for Sialk:
+Then write the sketch exactly as you would for Sialk Stage:
 
 ```js
 const { audio, transport } = window.sialk;
 ```
 
 `installShim` resolves to a handle whose `passthrough` is `true` when a real
-Sialk host was already present and the shim stood aside. That is the normal
+Sialk Stage host was already present and the shim stood aside. That is the normal
 case inside the application, and it is not an error.
 
 ## Why it exists
 
 The contract's first rule is that the global is simply there — no polling, no
-readiness event, no race. That is easy inside Sialk, which installs it in a
+readiness event, no race. That is easy inside Sialk Stage, which installs it in a
 preload before the page's first line. In a browser there is no preload, so the
 shim does the same job as early as it can and gives you a promise for the point
 at which audio is actually flowing.
@@ -58,6 +58,6 @@ with everything inlined:
 </script>
 ```
 
-See <https://sialk.app/contract/> for the contract this implements.
+See <https://www.sialk.net/contract> for the contract this implements.
 
 MIT licensed.

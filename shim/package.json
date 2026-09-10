@@ -1,7 +1,7 @@
 {
   "name": "@sialk/shim",
   "version": "1.0.0",
-  "description": "Run a Sialk sketch in a plain browser. Provides window.sialk from the microphone or an audio file; does nothing inside Sialk itself.",
+  "description": "Run a Sialk sketch in a plain browser. Provides window.sialk from the microphone or an audio file; does nothing inside Sialk Stage itself.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,5 +34,5 @@
     "type": "git",
     "url": "git+https://github.com/sialkapp/sialk-contract.git"
   },
-  "homepage": "https://sialk.app/contract/"
+  "homepage": "https://www.sialk.net/contract"
 }
