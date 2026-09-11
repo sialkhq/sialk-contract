@@ -23,7 +23,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sialkapp/sialk-contract.git"
+    "url": "git+https://github.com/sialkhq/audio-contract.git"
   },
   "homepage": "https://www.sialk.net/contract"
 }
