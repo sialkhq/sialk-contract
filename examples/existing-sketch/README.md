@@ -29,7 +29,7 @@ improvised.
 
 Deleting plumbing is the small part. Three things matter more:
 
-1. **It runs on stage unchanged.** Inside Sialk Stage the shim stands down and the
+1. **It runs on stage unchanged.** Inside Sialk Operator the shim stands down and the
    host writes the same fields. The same file is the laptop version and the
    show version — there is no port.
 

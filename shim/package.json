@@ -1,7 +1,7 @@
 {
   "name": "@sialk/shim",
   "version": "1.0.0",
-  "description": "Run a Sialk sketch in a plain browser. Provides window.sialk from the microphone or an audio file; does nothing inside Sialk Stage itself.",
+  "description": "Run a Sialk sketch in a plain browser. Provides window.sialk from the microphone or an audio file; does nothing inside Sialk Operator itself.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

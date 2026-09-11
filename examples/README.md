@@ -4,13 +4,13 @@ Working sketches for the Sialk audio contract.
 
 **Two kinds of thing live here, and they are not interchangeable.**
 
-**Sketch folders** are what you drop on Sialk Stage. Sialk Stage plays these kinds
+**Sketch folders** are what you drop on Sialk Operator. Sialk Operator plays these kinds
 today and refuses anything else by name:
 
 | Folder | Kind | What it is |
 | --- | --- | --- |
-| `glsl-bands/` | **GLSL** | one `sketch.glsl`, no page and no loop. Sialk Stage supplies both, and the audio as uniforms. |
-| `p5-rings/` | **p5** | one `sketch.js` in global mode. Sialk Stage supplies p5 itself, so it needs no library and no network. |
+| `glsl-bands/` | **GLSL** | one `sketch.glsl`, no page and no loop. Sialk Operator supplies both, and the audio as uniforms. |
+| `p5-rings/` | **p5** | one `sketch.js` in global mode. Sialk Operator supplies p5 itself, so it needs no library and no network. |
 | `glsl-raymarch/` | **GLSL** | raymarched 3D — 96 steps, analytic normals, soft shadows. |
 | `glsl-points/` | **GLSL** | a point field with no geometry: every pixel against every point. |
 | `p5-3d/` | **p5** | `WEBGL` mode, 600 lit boxes — 3D the way p5 does it. |
@@ -49,12 +49,12 @@ the end is not. Step count is not the thing to look at.
 less often and everything else keeps moving. Three layers together —
 `p5-points` + `glsl-raymarch` + `glsl-bands` — held 60 fps each at 4K.
 
-To see it yourself, add the three folders to Sialk Stage as layers — drop them on
+To see it yourself, add the three folders to Sialk Operator as layers — drop them on
 the window together, or one at a time.
 
 **Contract pages** are the documentation: every one reads `window.sialk` and
 nothing else, and runs in a plain browser through `@sialk/shim`. They are how
-the contract is shown and tested. **They are not layers** — Sialk Stage will list one
+the contract is shown and tested. **They are not layers** — Sialk Operator will list one
 and refuse to start it, naming the version its runtime arrives in, because a
 page is a platform rather than a kind.
 
@@ -71,7 +71,7 @@ stylesheet sit beside the pages.
 | ------------------ | -------------------------------------------------------------------------------------------------- |
 | `inspector/`       | Every field of the contract, live. Start here — confirm audio is arriving before writing a sketch. |
 | `minimal/`         | Raw WebGL2, no libraries. The contract integration is four lines.                                  |
-| `three/`           | A Three.js scene driven by bands, onsets and beats. Loads Three.js from a CDN. The page runs in any browser today. Sialk Stage plays Three.js since 0.2.0, as a folder with a `scene.js` that exports a function: https://www.sialk.net/stage/docs/writing-three |
+| `three/`           | A Three.js scene driven by bands, onsets and beats. Loads Three.js from a CDN. The page runs in any browser today. Sialk Operator plays Three.js since 0.2.0, as a folder with a `scene.js` that exports a function: https://www.sialk.net/operator/docs/writing-three |
 | `existing-sketch/` | The same sketch before and after conversion, with the `draw()` function identical in both.         |
 
 ## Writing your own
@@ -92,7 +92,7 @@ stylesheet sit beside the pages.
 </script>
 ```
 
-**A hosted sketch must start without a gesture.** Inside Sialk Stage your sketch runs
+**A hosted sketch must start without a gesture.** Inside Sialk Operator your sketch runs
 in an off-screen browser and there is nothing to click. Branch on whether the
 contract is already there:
 
@@ -116,7 +116,7 @@ Three more things that are easy to get wrong:
   only ever increases. `time` is the show's position and jumps when a performer
   scrubs or cues — which is sometimes exactly what you want, deliberately.
 - **Size to `output.width` and `output.height`, not to the window.** Inside
-  Sialk Stage the surface being composited is the projector, and it is not this window.
+  Sialk Operator the surface being composited is the projector, and it is not this window.
 
 The full specification is `contract/audio-contract-v1.md`. Read §3 for the
 guarantees a host makes you, and §4 before assuming anything can change.

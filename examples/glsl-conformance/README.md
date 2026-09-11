@@ -2,9 +2,9 @@
 
 These are not demonstrations. They are the awkward spellings of a fragment
 shader that the runtime has to accept, kept as real folders so the claim can be
-tested by **dropping them on Sialk Stage** rather than only as strings in a test.
+tested by **dropping them on Sialk Operator** rather than only as strings in a test.
 
-Sialk Stage's own test suite covers the same rules as pure functions, which is
+Sialk Operator's own test suite covers the same rules as pure functions, which is
 faster. These folders cover what a unit test cannot: that
 the shader assembled from them actually compiles, links and paints on a GPU.
 

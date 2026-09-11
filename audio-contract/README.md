@@ -70,7 +70,7 @@ ring.count = values.rings;
 Declaring is safe at any time. A redeclaration never discards what the performer
 has dialled in, so a sketch can be edited between soundcheck and the set.
 
-## Running a sketch outside Sialk Stage
+## Running a sketch outside Sialk Operator
 
 [`@sialk/shim`](https://www.npmjs.com/package/@sialk/shim) provides the same
 global in a plain browser, off the microphone or an audio file, so a sketch can
